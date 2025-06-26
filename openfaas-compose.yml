@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: openfaas/gateway:0.24.6
+    ports:
+      - "8080:8080"
+    environment:
+      - functions_provider_url=http://faas-netesd:8081/
+      - basic_auth=true
+      - secret_mount_path=/run/secrets
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - openfaas
+    depends_on:
+      - basic-auth-plugin
+
+  basic-auth-plugin:
+    image: openfaas/basic-auth:0.24.6
+    environment:
+      - secret_mount_path=/run/secrets
+      - user_filename=user
+      - pass_filename=pass
+    volumes:
+      - ./secrets:/run/secrets
+    networks:
+      - openfaas
+
+  faas-netesd:
+    image: openfaas/faas-netesd:0.24.6
+    environment:
+      - secret_mount_path=/run/secrets
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets:/run/secrets
+    networks:
+      - openfaas
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - openfaas
+
+  alertmanager:
+    image: prom/alertmanager:v0.24.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - openfaas
+
+  nats:
+    image: nats-streaming:0.25.5
+    networks:
+      - openfaas
+
+  queue-worker:
+    image: openfaas/queue-worker:0.24.6
+    environment:
+      - secret_mount_path=/run/secrets
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets:/run/secrets
+    networks:
+      - openfaas
+    depends_on:
+      - nats
+
+networks:
+  openfaas:
+    driver: bridge

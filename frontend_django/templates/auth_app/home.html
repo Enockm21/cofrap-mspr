@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Accueil - MSPR2-Cofrap{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Hero Section -->
+        <div class="text-center text-white mb-5">
+            <h1 class="display-4 fw-bold mb-4">
+                <i class="fas fa-shield-alt me-3"></i>
+                MSPR2-Cofrap
+            </h1>
+            <p class="lead mb-4">
+                Application serverless sécurisée pour la gestion d'utilisateurs avec authentification à deux facteurs
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'auth_app:login' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                </a>
+                <a href="{% url 'auth_app:register' %}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-user-plus me-2"></i>S'inscrire
+                </a>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h4>Authentification Sécurisée</h4>
+                    <p class="text-muted">
+                        Authentification à deux facteurs (2FA) avec codes TOTP et codes de récupération
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <h4>Rotation de Mots de Passe</h4>
+                    <p class="text-muted">
+                        Génération automatique de mots de passe sécurisés avec rotation périodique
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h4>Architecture Serverless</h4>
+                    <p class="text-muted">
+                        Basé sur OpenFaaS et Kubernetes pour une scalabilité et une fiabilité optimales
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Stack Section -->
+        <div class="card mt-5">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-cogs me-2"></i>Stack Technique
+                </h3>
+                <div class="row text-center">
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fab fa-python fa-3x text-primary mb-2"></i>
+                        <p class="small">Python</p>
+                    </div>
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fas fa-cloud fa-3x text-info mb-2"></i>
+                        <p class="small">OpenFaaS</p>
+                    </div>
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fas fa-ship fa-3x text-success mb-2"></i>
+                        <p class="small">Docker</p>
+                    </div>
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fas fa-database fa-3x text-warning mb-2"></i>
+                        <p class="small">PostgreSQL</p>
+                    </div>
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fab fa-kubernetes fa-3x text-danger mb-2"></i>
+                        <p class="small">Kubernetes</p>
+                    </div>
+                    <div class="col-md-2 col-4 mb-3">
+                        <i class="fab fa-js-square fa-3x text-warning mb-2"></i>
+                        <p class="small">Django</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Features -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-shield-alt me-2"></i>Fonctionnalités de Sécurité
+                </h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Authentification à deux facteurs (TOTP)
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Codes de récupération sécurisés
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Rotation automatique des mots de passe
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Chiffrement des données sensibles
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Logs d'audit complets
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Validation des entrées utilisateur
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
