@@ -21,22 +21,38 @@ class FunctionHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
             
+            # Créer l'événement au format attendu par la fonction handle
+            event = {
+                'body': post_data.decode('utf-8'),
+                'headers': dict(self.headers),
+                'method': 'POST',
+                'path': self.path
+            }
+            
+            # Contexte vide pour compatibilité
+            context = {}
+            
             # Appeler la fonction handler
-            response = handle(post_data.decode('utf-8'))
+            response = handle(event, context)
             
             # Envoyer la réponse
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-            self.end_headers()
-            
-            if isinstance(response, tuple):
-                response_data, status_code = response
-                self.send_response(status_code)
-                self.wfile.write(response_data.encode('utf-8'))
+            if isinstance(response, dict) and 'statusCode' in response:
+                # Format OpenFaaS
+                self.send_response(response['statusCode'])
+                self.send_header('Content-type', response.get('headers', {}).get('Content-Type', 'application/json'))
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.end_headers()
+                self.wfile.write(response['body'].encode('utf-8'))
             else:
+                # Format simple
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.end_headers()
                 self.wfile.write(response.encode('utf-8'))
                 
         except Exception as e:

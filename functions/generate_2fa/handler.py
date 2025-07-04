@@ -9,13 +9,14 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import pyotp
 
-def handle(req):
+def handle(event, context):
     """
     Fonction serverless pour générer des codes 2FA (TOTP)
     """
     try:
-        # Parse de la requête
-        data = json.loads(req) if req else {}
+        # Parser les paramètres depuis le body de la requête
+        body = event.get('body', '{}')
+        data = json.loads(body) if body else {}
         
         # Paramètres de génération
         user_id = data.get('user_id')
@@ -23,9 +24,13 @@ def handle(req):
         issuer = data.get('issuer', 'MSPR2-Cofrap')
         
         if not user_id or not user_email:
-            return json.dumps({
-                'error': 'user_id et user_email sont requis'
-            }), 400
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'error': 'user_id et user_email sont requis'
+                })
+            }
         
         # Génération d'une clé secrète pour TOTP
         secret_key = pyotp.random_base32()
@@ -60,19 +65,31 @@ def handle(req):
         recovery_codes = generate_recovery_codes()
         store_recovery_codes(db_connection, user_id, recovery_codes)
         
-        return json.dumps({
-            'secret_key': secret_key,
-            'qr_code': qr_code_base64,
-            'provisioning_uri': provisioning_uri,
-            'recovery_codes': recovery_codes,
-            'generated_at': datetime.now().isoformat(),
-            'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
-        })
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({
+                'secret_key': secret_key,
+                'qr_code': qr_code_base64,
+                'provisioning_uri': provisioning_uri,
+                'recovery_codes': recovery_codes,
+                'generated_at': datetime.now().isoformat(),
+                'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
+            })
+        }
         
     except json.JSONDecodeError:
-        return json.dumps({'error': 'Format JSON invalide'}), 400
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'error': 'Format JSON invalide'})
+        }
     except Exception as e:
-        return json.dumps({'error': f'Erreur interne: {str(e)}'}), 500
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'error': f'Erreur interne: {str(e)}'})
+        }
 
 def get_db_connection():
     """Connexion à la base de données PostgreSQL"""

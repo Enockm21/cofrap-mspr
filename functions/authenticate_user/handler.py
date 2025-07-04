@@ -8,13 +8,14 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import pyotp
 
-def handle(req):
+def handle(event, context):
     """
     Fonction serverless pour l'authentification utilisateur avec 2FA
     """
     try:
-        # Parse de la requête
-        data = json.loads(req) if req else {}
+        # Parser les paramètres depuis le body de la requête
+        body = event.get('body', '{}')
+        data = json.loads(body) if body else {}
         
         # Paramètres d'authentification
         username = data.get('username')
@@ -23,9 +24,13 @@ def handle(req):
         recovery_code = data.get('recovery_code')
         
         if not username or not password:
-            return json.dumps({
-                'error': 'username et password sont requis'
-            }), 400
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'error': 'username et password sont requis'
+                })
+            }
         
         # Connexion à PostgreSQL
         db_connection = get_db_connection()
@@ -34,47 +39,71 @@ def handle(req):
         user = get_user_by_username(db_connection, username)
         if not user:
             log_failed_attempt(db_connection, username, 'Utilisateur non trouvé')
-            return json.dumps({
-                'error': 'Identifiants invalides'
-            }), 401
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'error': 'Identifiants invalides'
+                })
+            }
         
         # Vérification du mot de passe
         if not verify_password(db_connection, user['id'], password):
             log_failed_attempt(db_connection, username, 'Mot de passe incorrect')
-            return json.dumps({
-                'error': 'Identifiants invalides'
-            }), 401
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'error': 'Identifiants invalides'
+                })
+            }
         
         # Vérification si l'utilisateur a 2FA activé
         two_factor_enabled = check_2fa_enabled(db_connection, user['id'])
         
         if two_factor_enabled:
             if not two_factor_code and not recovery_code:
-                return json.dumps({
-                    'error': 'Code 2FA requis',
-                    'requires_2fa': True
-                }), 401
+                return {
+                    'statusCode': 401,
+                    'headers': {'Content-Type': 'application/json'},
+                    'body': json.dumps({
+                        'error': 'Code 2FA requis',
+                        'requires_2fa': True
+                    })
+                }
             
             # Vérification du code 2FA ou du code de récupération
             if two_factor_code:
                 if not verify_2fa_code(db_connection, user['id'], two_factor_code):
                     log_failed_attempt(db_connection, username, 'Code 2FA incorrect')
-                    return json.dumps({
-                        'error': 'Code 2FA incorrect'
-                    }), 401
+                    return {
+                        'statusCode': 401,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'error': 'Code 2FA incorrect'
+                        })
+                    }
             elif recovery_code:
                 if not verify_recovery_code(db_connection, user['id'], recovery_code):
                     log_failed_attempt(db_connection, username, 'Code de récupération incorrect')
-                    return json.dumps({
-                        'error': 'Code de récupération incorrect'
-                    }), 401
+                    return {
+                        'statusCode': 401,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'error': 'Code de récupération incorrect'
+                        })
+                    }
         
         # Vérification de l'expiration du mot de passe
         if is_password_expired(db_connection, user['id']):
-            return json.dumps({
-                'error': 'Mot de passe expiré',
-                'requires_password_change': True
-            }), 401
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'error': 'Mot de passe expiré',
+                    'requires_password_change': True
+                })
+            }
         
         # Génération du token JWT
         token = generate_jwt_token(user)
@@ -85,21 +114,33 @@ def handle(req):
         # Log de la connexion réussie
         log_successful_login(db_connection, user['id'])
         
-        return json.dumps({
-            'token': token,
-            'user': {
-                'id': user['id'],
-                'username': user['username'],
-                'email': user['email'],
-                'two_factor_enabled': two_factor_enabled
-            },
-            'expires_at': (datetime.now() + timedelta(hours=24)).isoformat()
-        })
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({
+                'token': token,
+                'user': {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'email': user['email'],
+                    'two_factor_enabled': two_factor_enabled
+                },
+                'expires_at': (datetime.now() + timedelta(hours=24)).isoformat()
+            })
+        }
         
     except json.JSONDecodeError:
-        return json.dumps({'error': 'Format JSON invalide'}), 400
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'error': 'Format JSON invalide'})
+        }
     except Exception as e:
-        return json.dumps({'error': f'Erreur interne: {str(e)}'}), 500
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'error': f'Erreur interne: {str(e)}'})
+        }
 
 def get_db_connection():
     """Connexion à la base de données PostgreSQL"""

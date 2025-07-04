@@ -14,8 +14,8 @@ functions:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     labels:
-      - "com.openfaas.function=generate-2fa"
-      - "com.openfaas.description=Génère des codes 2FA TOTP avec QR codes"
+      com.openfaas.function: "generate-2fa"
+      com.openfaas.description: "Génère des codes 2FA TOTP avec QR codes"
     annotations:
       topic: "two-factor-auth"
     limits:

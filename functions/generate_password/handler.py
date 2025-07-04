@@ -6,29 +6,29 @@ import os
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import sys
 
-def handle(req):
+def handle(body):
     """
     Fonction serverless pour générer des mots de passe sécurisés avec rotation
+    Compatible OpenFaaS python3-http (body est un string JSON)
     """
     try:
-        # Parse de la requête
-        data = json.loads(req) if req else {}
-        
+        if isinstance(body, bytes):
+            body = body.decode('utf-8')
+        try:
+            data = json.loads(body)
+        except Exception:
+            data = {}
         # Paramètres de génération
         length = data.get('length', 16)
         include_symbols = data.get('include_symbols', True)
         include_numbers = data.get('include_numbers', True)
         include_uppercase = data.get('include_uppercase', True)
         include_lowercase = data.get('include_lowercase', True)
-        
         # Validation des paramètres
         if length < 8 or length > 128:
-            return json.dumps({
-                'error': 'La longueur du mot de passe doit être entre 8 et 128 caractères'
-            }), 400
-        
-        # Génération du mot de passe
+            return json.dumps({'error': 'La longueur du mot de passe doit être entre 8 et 128 caractères'})
         chars = ''
         if include_lowercase:
             chars += string.ascii_lowercase
@@ -38,32 +38,18 @@ def handle(req):
             chars += string.digits
         if include_symbols:
             chars += '!@#$%^&*()_+-=[]{}|;:,.<>?'
-        
         if not chars:
-            return json.dumps({
-                'error': 'Au moins un type de caractère doit être sélectionné'
-            }), 400
-        
-        # Génération du mot de passe sécurisé
+            return json.dumps({'error': 'Au moins un type de caractère doit être sélectionné'})
         password = ''.join(secrets.choice(chars) for _ in range(length))
-        
-        # Hash du mot de passe pour stockage
         salt = secrets.token_hex(16)
         password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
         password_hash_hex = password_hash.hex()
-        
-        # Connexion à PostgreSQL
         db_connection = get_db_connection()
-        
-        # Stockage du hash en base
         user_id = data.get('user_id')
         if user_id:
             store_password_hash(db_connection, user_id, password_hash_hex, salt)
-        
-        # Rotation automatique si configurée
         if data.get('enable_rotation', False):
             schedule_password_rotation(db_connection, user_id, data.get('rotation_days', 90))
-        
         return json.dumps({
             'password': password,
             'hash': password_hash_hex,
@@ -71,11 +57,8 @@ def handle(req):
             'generated_at': datetime.now().isoformat(),
             'expires_at': (datetime.now() + timedelta(days=data.get('rotation_days', 90))).isoformat() if data.get('enable_rotation') else None
         })
-        
-    except json.JSONDecodeError:
-        return json.dumps({'error': 'Format JSON invalide'}), 400
     except Exception as e:
-        return json.dumps({'error': f'Erreur interne: {str(e)}'}), 500
+        return json.dumps({'error': f'Erreur interne: {str(e)}'})
 
 def get_db_connection():
     """Connexion à la base de données PostgreSQL"""

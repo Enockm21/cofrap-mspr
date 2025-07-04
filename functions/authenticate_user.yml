@@ -15,8 +15,8 @@ functions:
       POSTGRES_PASSWORD: password
       JWT_SECRET_KEY: your-secret-key-change-in-production
     labels:
-      - "com.openfaas.function=authenticate-user"
-      - "com.openfaas.description=Authentifie les utilisateurs avec 2FA"
+      com.openfaas.function: "authenticate-user"
+      com.openfaas.description: "Authentifie les utilisateurs avec 2FA"
     annotations:
       topic: "authentication"
     limits:

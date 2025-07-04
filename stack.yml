@@ -1,0 +1,80 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+
+functions:
+  generate-password:
+    lang: python3-http-debian
+    handler: ./functions/generate_password
+    image: enock17/generate-password:latest
+    environment:
+      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
+      POSTGRES_DB: mspr2_cofrap
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    labels:
+      com.openfaas.function: "generate-password"
+      com.openfaas.description: "password-rotation"
+    annotations:
+      topic: "password-management"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+  authenticate-user:
+    lang: python3-http-debian
+    handler: ./functions/authenticate_user
+    image: enock17/authenticate-user:latest
+    environment:
+      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
+      POSTGRES_DB: mspr2_cofrap
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      JWT_SECRET_KEY: your-secret-key-change-in-production
+    labels:
+      com.openfaas.function: "authenticate-user"
+      com.openfaas.description: "user-auth-2fa"
+    annotations:
+      topic: "authentication"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+  generate-2fa:
+    lang: python3-http-debian
+    handler: ./functions/generate_2fa
+    image: enock17/generate-2fa:latest
+    environment:
+      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
+      POSTGRES_DB: mspr2_cofrap
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    labels:
+      com.openfaas.function: "generate-2fa"
+      com.openfaas.description: "totp-2fa-qrcode"
+    annotations:
+      topic: "two-factor-auth"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+  hello-world:
+    lang: python3-http-debian
+    handler: ./hello-world
+    image: hello-world:latest
+
+  test-function:
+    lang: python3-http-debian
+    handler: ./test-function
+    image: test-function:latest
+
