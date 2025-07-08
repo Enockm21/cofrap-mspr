@@ -9,10 +9,11 @@ functions:
     handler: ./functions/generate_password
     image: enock17/generate-password:latest
     environment:
-      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
-      POSTGRES_DB: mspr2_cofrap
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: 
+      POSTGRES_PORT: 5432
     labels:
       com.openfaas.function: "generate-password"
       com.openfaas.description: "password-rotation"
@@ -30,10 +31,11 @@ functions:
     handler: ./functions/authenticate_user
     image: enock17/authenticate-user:latest
     environment:
-      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
-      POSTGRES_DB: mspr2_cofrap
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: 
+      POSTGRES_PORT: 5432
       JWT_SECRET_KEY: your-secret-key-change-in-production
     labels:
       com.openfaas.function: "authenticate-user"
@@ -68,13 +70,5 @@ functions:
       memory: 64Mi
       cpu: 50m
 
-  hello-world:
-    lang: python3-http-debian
-    handler: ./hello-world
-    image: hello-world:latest
-
-  test-function:
-    lang: python3-http-debian
-    handler: ./test-function
-    image: test-function:latest
+  
 

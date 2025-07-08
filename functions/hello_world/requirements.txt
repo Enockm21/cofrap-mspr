@@ -1,1 +1,0 @@
-# Aucune dépendance externe nécessaire pour cette fonction simple 

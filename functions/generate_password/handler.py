@@ -8,17 +8,30 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
 
-def handle(body):
+def handle(event, context):
     """
     Fonction serverless pour générer des mots de passe sécurisés avec rotation
-    Compatible OpenFaaS python3-http (body est un string JSON)
+    Compatible OpenFaaS python3-http-debian
     """
     try:
-        if isinstance(body, bytes):
-            body = body.decode('utf-8')
-        try:
-            data = json.loads(body)
-        except Exception:
+        # Parsing robuste de l'entrée
+        if hasattr(event, 'body'):
+            body = event.body
+            if isinstance(body, bytes):
+                body = body.decode('utf-8')
+            if body:
+                try:
+                    data = json.loads(body)
+                except Exception:
+                    data = {}
+            else:
+                data = {}
+        elif isinstance(event, str):
+            try:
+                data = json.loads(event)
+            except Exception:
+                data = {}
+        else:
             data = {}
         # Paramètres de génération
         length = data.get('length', 16)

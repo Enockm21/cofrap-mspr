@@ -1,0 +1,649 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tableau de bord - Cofrap{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1>Tableau de bord</h1>
+        <p>Bienvenue, {{ user.username|default:"Utilisateur" }} ! Gérez votre sécurité et vos paramètres.</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Statistiques -->
+    <div class="dashboard-stats">
+        <div class="stat-card fade-in">
+            <div class="stat-number">12</div>
+            <div class="stat-label">
+                <i class="fas fa-shield-alt"></i>
+                Connexions sécurisées
+            </div>
+        </div>
+        
+        <div class="stat-card fade-in">
+            <div class="stat-number">3</div>
+            <div class="stat-label">
+                <i class="fas fa-key"></i>
+                Mots de passe générés
+            </div>
+        </div>
+        
+        <div class="stat-card fade-in">
+            <div class="stat-number">1</div>
+            <div class="stat-label">
+                <i class="fas fa-mobile-alt"></i>
+                Appareils 2FA
+            </div>
+        </div>
+        
+        <div class="stat-card fade-in">
+            <div class="stat-number">98%</div>
+            <div class="stat-label">
+                <i class="fas fa-chart-line"></i>
+                Score de sécurité
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Profil utilisateur -->
+        <div class="col-12 col-lg-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-user-circle"></i>
+                        Profil utilisateur
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-large">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h5>{{ user.username|default:"Utilisateur" }}</h5>
+                        <p class="text-muted">{{ user.email|default:"user@example.com" }}</p>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-calendar"></i> Membre depuis:
+                            </span>
+                            <span class="info-value">15 janvier 2024</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-clock"></i> Dernière connexion:
+                            </span>
+                            <span class="info-value">Il y a 2 heures</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-map-marker-alt"></i> Localisation:
+                            </span>
+                            <span class="info-value">Paris, France</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-edit"></i> Modifier le profil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sécurité -->
+        <div class="col-12 col-lg-8">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-shield-alt"></i>
+                        Sécurité du compte
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="security-items">
+                        <!-- Mot de passe -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <div class="security-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div class="security-details">
+                                    <h6>Mot de passe</h6>
+                                    <p>Dernière modification: il y a 30 jours</p>
+                                </div>
+                            </div>
+                            <div class="security-actions">
+                                <a href="{% url 'auth_app:password_generator' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-magic"></i> Générer
+                                </a>
+                                <button class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-edit"></i> Modifier
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Authentification à deux facteurs -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <div class="security-icon">
+                                    <i class="fas fa-mobile-alt"></i>
+                                </div>
+                                <div class="security-details">
+                                    <h6>Authentification à deux facteurs</h6>
+                                    <p>Statut: <span class="badge badge-success">Activé</span></p>
+                                </div>
+                            </div>
+                            <div class="security-actions">
+                                <a href="{% url 'auth_app:two_factor' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-qrcode"></i> Configurer
+                                </a>
+                                <button class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times"></i> Désactiver
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Codes de récupération -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <div class="security-icon">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div class="security-details">
+                                    <h6>Codes de récupération</h6>
+                                    <p>8 codes disponibles</p>
+                                </div>
+                            </div>
+                            <div class="security-actions">
+                                <button class="btn btn-warning btn-sm">
+                                    <i class="fas fa-download"></i> Télécharger
+                                </button>
+                                <button class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-refresh"></i> Régénérer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sessions actives -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <div class="security-icon">
+                                    <i class="fas fa-desktop"></i>
+                                </div>
+                                <div class="security-details">
+                                    <h6>Sessions actives</h6>
+                                    <p>2 appareils connectés</p>
+                                </div>
+                            </div>
+                            <div class="security-actions">
+                                <button class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> Voir
+                                </button>
+                                <button class="btn btn-danger btn-sm">
+                                    <i class="fas fa-sign-out-alt"></i> Déconnecter tout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activité récente -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-history"></i>
+                        Activité récente
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h6>Connexion réussie</h6>
+                                <p>Connexion depuis Chrome sur Windows - Paris, France</p>
+                                <small class="text-muted">Il y a 2 heures</small>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon info">
+                                <i class="fas fa-key"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h6>Mot de passe généré</h6>
+                                <p>Nouveau mot de passe généré pour le compte</p>
+                                <small class="text-muted">Il y a 1 jour</small>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon warning">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h6>2FA configuré</h6>
+                                <p>Authentification à deux facteurs activée</p>
+                                <small class="text-muted">Il y a 3 jours</small>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h6>Compte créé</h6>
+                                <p>Nouveau compte utilisateur créé</p>
+                                <small class="text-muted">Il y a 1 semaine</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paramètres avancés -->
+    <div class="row mt-4">
+        <div class="col-12 col-lg-6">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-cog"></i>
+                        Paramètres de sécurité
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h6>Notifications de sécurité</h6>
+                                <p>Recevoir des alertes pour les connexions suspectes</p>
+                            </div>
+                            <div class="setting-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h6>Connexions automatiques</h6>
+                                <p>Se souvenir de moi sur cet appareil</p>
+                            </div>
+                            <div class="setting-toggle">
+                                <label class="switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h6>Historique des connexions</h6>
+                                <p>Conserver l'historique pendant 90 jours</p>
+                            </div>
+                            <div class="setting-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-chart-pie"></i>
+                        Statistiques de sécurité
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="security-stats">
+                        <div class="stat-item">
+                            <div class="stat-progress">
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 98%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-info">
+                                <span>Score de sécurité</span>
+                                <span>98%</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-progress">
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-info">
+                                <span>Force du mot de passe</span>
+                                <span>85%</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-progress">
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-info">
+                                <span>Protection 2FA</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 2rem;
+}
+
+.user-info {
+    margin-top: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+
+.info-value {
+    font-weight: 500;
+}
+
+.security-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    background: var(--gray-50);
+}
+
+.security-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.security-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.security-details h6 {
+    margin-bottom: 0.25rem;
+}
+
+.security-details p {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.security-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.activity-icon.success { background: var(--success-color); }
+.activity-icon.info { background: var(--info-color); }
+.activity-icon.warning { background: var(--warning-color); }
+.activity-icon.danger { background: var(--danger-color); }
+
+.activity-content h6 {
+    margin-bottom: 0.25rem;
+}
+
+.activity-content p {
+    margin-bottom: 0.25rem;
+    color: var(--gray-600);
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-info h6 {
+    margin-bottom: 0.25rem;
+}
+
+.setting-info p {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+/* Switch toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--gray-300);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.security-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stat-progress {
+    width: 100%;
+}
+
+.progress {
+    width: 100%;
+    height: 8px;
+    background-color: var(--gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.stat-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.stat-info span:first-child {
+    color: var(--gray-600);
+}
+
+.stat-info span:last-child {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .security-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .security-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %} 

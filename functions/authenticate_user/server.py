@@ -89,9 +89,6 @@ class FunctionHandler(BaseHTTPRequestHandler):
                 input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
                 button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
                 .result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; }
-                .success { background: #d4edda; border: 1px solid #c3e6cb; }
-                .error { background: #f8d7da; border: 1px solid #f5c6cb; }
-                .warning { background: #fff3cd; border: 1px solid #ffeaa7; }
             </style>
         </head>
         <body>
@@ -100,19 +97,19 @@ class FunctionHandler(BaseHTTPRequestHandler):
                 <form id="authForm">
                     <div class="form-group">
                         <label>Nom d'utilisateur:</label>
-                        <input type="text" id="username" value="admin" required>
+                        <input type="text" id="username" required>
                     </div>
                     <div class="form-group">
                         <label>Mot de passe:</label>
-                        <input type="password" id="password" value="password" required>
+                        <input type="password" id="password" required>
                     </div>
                     <div class="form-group">
                         <label>Code 2FA (optionnel):</label>
-                        <input type="text" id="twoFactorCode" placeholder="000000" maxlength="6">
+                        <input type="text" id="twoFactorCode" placeholder="Code à 6 chiffres">
                     </div>
                     <div class="form-group">
                         <label>Code de récupération (optionnel):</label>
-                        <input type="text" id="recoveryCode" placeholder="ABCD1234" maxlength="8">
+                        <input type="text" id="recoveryCode" placeholder="Code de récupération">
                     </div>
                     <button type="submit">Se connecter</button>
                 </form>
@@ -125,18 +122,10 @@ class FunctionHandler(BaseHTTPRequestHandler):
                     
                     const data = {
                         username: document.getElementById('username').value,
-                        password: document.getElementById('password').value
+                        password: document.getElementById('password').value,
+                        two_factor_code: document.getElementById('twoFactorCode').value || null,
+                        recovery_code: document.getElementById('recoveryCode').value || null
                     };
-                    
-                    const twoFactorCode = document.getElementById('twoFactorCode').value;
-                    const recoveryCode = document.getElementById('recoveryCode').value;
-                    
-                    if (twoFactorCode) {
-                        data.two_factor_code = twoFactorCode;
-                    }
-                    if (recoveryCode) {
-                        data.recovery_code = recoveryCode;
-                    }
                     
                     try {
                         const response = await fetch('/', {
@@ -150,31 +139,21 @@ class FunctionHandler(BaseHTTPRequestHandler):
                         const result = await response.json();
                         
                         if (response.ok) {
-                            document.getElementById('result').className = 'result success';
                             document.getElementById('result').innerHTML = `
                                 <h3>✅ Authentification réussie !</h3>
-                                <p><strong>Token JWT:</strong> <code>${result.token.substring(0, 50)}...</code></p>
-                                <p><strong>Utilisateur:</strong> ${result.user.username} (${result.user.email})</p>
-                                <p><strong>2FA activé:</strong> ${result.user.two_factor_enabled ? 'Oui' : 'Non'}</p>
+                                <p><strong>Utilisateur:</strong> ${result.username}</p>
+                                <p><strong>Token JWT:</strong> <code>${result.token}</code></p>
                                 <p><strong>Expire le:</strong> ${result.expires_at}</p>
                             `;
                         } else {
-                            let className = 'result error';
-                            if (result.requires_2fa) {
-                                className = 'result warning';
-                            }
-                            
-                            document.getElementById('result').className = className;
                             document.getElementById('result').innerHTML = `
-                                <h3>❌ ${result.requires_2fa ? 'Code 2FA requis' : 'Erreur d\'authentification'}</h3>
+                                <h3>❌ Échec de l'authentification</h3>
                                 <p>${result.error}</p>
-                                ${result.requires_2fa ? '<p>Veuillez entrer votre code 2FA ou code de récupération.</p>' : ''}
                             `;
                         }
                         
                         document.getElementById('result').style.display = 'block';
                     } catch (error) {
-                        document.getElementById('result').className = 'result error';
                         document.getElementById('result').innerHTML = `
                             <h3>❌ Erreur de connexion</h3>
                             <p>${error.message}</p>

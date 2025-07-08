@@ -1,125 +1,128 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Connexion - MSPR2-Cofrap{% endblock %}
+{% block title %}Connexion - Cofrap{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <div class="card">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <i class="fas fa-sign-in-alt fa-3x text-primary mb-3"></i>
-                    <h2 class="card-title">Connexion</h2>
-                    <p class="text-muted">Accédez à votre compte sécurisé</p>
-                </div>
-
-                <form method="post" id="loginForm">
-                    {% csrf_token %}
-                    
-                    <!-- Nom d'utilisateur -->
-                    <div class="mb-3">
-                        <label for="username" class="form-label">
-                            <i class="fas fa-user me-2"></i>Nom d'utilisateur
-                        </label>
-                        <input type="text" class="form-control" id="username" name="username" 
-                               value="{{ username|default:'' }}" required>
-                    </div>
-
-                    <!-- Mot de passe -->
-                    <div class="mb-3">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock me-2"></i>Mot de passe
-                        </label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="password" name="password" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Code 2FA (affiché conditionnellement) -->
-                    {% if requires_2fa %}
-                    <div class="mb-3" id="twoFactorSection">
-                        <label for="two_factor_code" class="form-label">
-                            <i class="fas fa-mobile-alt me-2"></i>Code 2FA
-                        </label>
-                        <input type="text" class="form-control" id="two_factor_code" name="two_factor_code" 
-                               placeholder="000000" maxlength="6" pattern="[0-9]{6}">
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Entrez le code à 6 chiffres de votre application d'authentification
-                        </div>
-                    </div>
-
-                    <!-- Code de récupération -->
-                    <div class="mb-3">
-                        <label for="recovery_code" class="form-label">
-                            <i class="fas fa-key me-2"></i>Code de récupération
-                        </label>
-                        <input type="text" class="form-control" id="recovery_code" name="recovery_code" 
-                               placeholder="ABCD1234" maxlength="8">
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Ou utilisez un code de récupération si vous n'avez pas accès à votre 2FA
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Bouton de connexion -->
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>
-                            {% if requires_2fa %}Valider{% else %}Se connecter{% endif %}
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Liens utiles -->
-                <div class="text-center mt-4">
-                    <p class="mb-2">
-                        <a href="{% url 'auth_app:register' %}" class="text-decoration-none">
-                            <i class="fas fa-user-plus me-1"></i>Créer un compte
-                        </a>
-                    </p>
-                    <p class="mb-0">
-                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpModal">
-                            <i class="fas fa-question-circle me-1"></i>Besoin d'aide ?
-                        </a>
-                    </p>
-                </div>
-            </div>
-        </div>
+<div class="hero">
+    <div class="container">
+        <h1>Connexion</h1>
+        <p>Accédez à votre compte sécurisé</p>
     </div>
 </div>
 
-<!-- Modal d'aide -->
-<div class="modal fade" id="helpModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-question-circle me-2"></i>Aide à la connexion
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <h6>Authentification à deux facteurs (2FA)</h6>
-                <p>Si vous avez activé la 2FA sur votre compte :</p>
-                <ul>
-                    <li>Utilisez votre application d'authentification (Google Authenticator, Authy, etc.)</li>
-                    <li>Entrez le code à 6 chiffres affiché</li>
-                    <li>Ou utilisez un code de récupération si vous n'avez pas accès à votre 2FA</li>
-                </ul>
-                
-                <h6>Codes de récupération</h6>
-                <p>Les codes de récupération sont des codes à 8 caractères que vous avez reçus lors de l'activation de la 2FA.</p>
-                
-                <h6>Mot de passe oublié</h6>
-                <p>Contactez votre administrateur pour réinitialiser votre mot de passe.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="text-center">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Connexion
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" data-validate>
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label for="username" class="form-label">
+                                <i class="fas fa-user"></i> Nom d'utilisateur
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   name="username" 
+                                   value="{{ username|default:'' }}"
+                                   required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock"></i> Mot de passe
+                            </label>
+                            <div class="input-group">
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="password" 
+                                       name="password" 
+                                       required>
+                                <button type="button" 
+                                        class="btn btn-secondary" 
+                                        id="toggle-password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {% if requires_2fa %}
+                            <div class="two-factor-section show">
+                                <div class="form-group">
+                                    <label for="two_factor_code" class="form-label">
+                                        <i class="fas fa-mobile-alt"></i> Code 2FA
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="two_factor_code" 
+                                           name="two_factor_code" 
+                                           placeholder="Entrez votre code 2FA"
+                                           maxlength="6"
+                                           pattern="[0-9]{6}">
+                                    <small class="form-text text-muted">
+                                        Entrez le code à 6 chiffres de votre application d'authentification
+                                    </small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="recovery_code" class="form-label">
+                                        <i class="fas fa-key"></i> Code de récupération (optionnel)
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="recovery_code" 
+                                           name="recovery_code" 
+                                           placeholder="Ou utilisez un code de récupération">
+                                    <small class="form-text text-muted">
+                                        Utilisez un code de récupération si vous ne pouvez pas accéder à votre 2FA
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       id="remember" 
+                                       name="remember">
+                                <label class="form-check-label" for="remember">
+                                    Se souvenir de moi sur cet appareil
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt"></i>
+                                {% if requires_2fa %}Valider{% else %}Se connecter{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <a href="#" class="text-primary">
+                                <i class="fas fa-question-circle"></i> Aide
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'auth_app:register' %}" class="text-primary">
+                                <i class="fas fa-user-plus"></i> S'inscrire
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -128,42 +131,34 @@
 
 {% block extra_js %}
 <script>
-    // Toggle visibilité du mot de passe
-    document.getElementById('togglePassword').addEventListener('click', function() {
-        const password = document.getElementById('password');
-        const icon = this.querySelector('i');
-        
-        if (password.type === 'password') {
-            password.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            password.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
 
-    // Validation du formulaire
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        const twoFactorCode = document.getElementById('two_factor_code');
-        const recoveryCode = document.getElementById('recovery_code');
-        
-        // Si 2FA est requis, vérifier qu'au moins un code est fourni
-        if (twoFactorCode && recoveryCode) {
-            if (!twoFactorCode.value && !recoveryCode.value) {
-                e.preventDefault();
-                alert('Veuillez entrer soit un code 2FA, soit un code de récupération.');
-                return;
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+    }
+
+    // Auto-focus on 2FA code input
+    const twoFactorInput = document.getElementById('two_factor_code');
+    if (twoFactorInput) {
+        twoFactorInput.focus();
+    }
+
+    // Auto-submit when 2FA code is complete
+    if (twoFactorInput) {
+        twoFactorInput.addEventListener('input', function() {
+            if (this.value.length === 6) {
+                this.form.submit();
             }
-        }
-    });
-
-    // Auto-focus sur le champ 2FA si requis
-    {% if requires_2fa %}
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('two_factor_code').focus();
-    });
-    {% endif %}
+        });
+    }
+});
 </script>
 {% endblock %} 

@@ -1,1 +1,97 @@
- 
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}Cofrap - Authentification Sécurisée{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{% url 'auth_app:home' %}" class="navbar-brand">
+                <i class="fas fa-shield-alt"></i>
+                Cofrap
+            </a>
+            
+            <ul class="navbar-nav">
+                <li><a href="{% url 'auth_app:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Accueil
+                </a></li>
+                
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'auth_app:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Tableau de bord
+                    </a></li>
+                    <li><a href="{% url 'auth_app:logout' %}" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i> Déconnexion
+                    </a></li>
+                {% else %}
+                    <li><a href="{% url 'auth_app:login' %}" class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
+                        <i class="fas fa-sign-in-alt"></i> Connexion
+                    </a></li>
+                    <li><a href="{% url 'auth_app:register' %}" class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}">
+                        <i class="fas fa-user-plus"></i> Inscription
+                    </a></li>
+                {% endif %}
+            </ul>
+            
+            <!-- Mobile menu toggle -->
+            <button class="mobile-menu-toggle d-block d-md-none">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-4">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} fade-in">
+                    {{ message }}
+                    <button type="button" class="close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div>
+                <p>&copy; 2024 Cofrap - Compagnie Française de Réalisation d'Applicatifs Professionnels. Tous droits réservés.</p>
+            </div>
+            <div>
+                <a href="#" class="text-white me-3"><i class="fab fa-github"></i></a>
+                <a href="#" class="text-white me-3"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="text-white"><i class="fab fa-twitter"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

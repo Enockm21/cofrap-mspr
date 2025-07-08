@@ -1,145 +1,303 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Accueil - MSPR2-Cofrap{% endblock %}
+{% block title %}Accueil - Cofrap{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <!-- Hero Section -->
-        <div class="text-center text-white mb-5">
-            <h1 class="display-4 fw-bold mb-4">
-                <i class="fas fa-shield-alt me-3"></i>
-                MSPR2-Cofrap
-            </h1>
-            <p class="lead mb-4">
-                Application serverless sécurisée pour la gestion d'utilisateurs avec authentification à deux facteurs
-            </p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{% url 'auth_app:login' %}" class="btn btn-light btn-lg">
-                    <i class="fas fa-sign-in-alt me-2"></i>Se connecter
-                </a>
-                <a href="{% url 'auth_app:register' %}" class="btn btn-outline-light btn-lg">
-                    <i class="fas fa-user-plus me-2"></i>S'inscrire
-                </a>
-            </div>
-        </div>
-
-        <!-- Features Section -->
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card feature-card h-100">
-                    <div class="feature-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <h4>Authentification Sécurisée</h4>
-                    <p class="text-muted">
-                        Authentification à deux facteurs (2FA) avec codes TOTP et codes de récupération
-                    </p>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card feature-card h-100">
-                    <div class="feature-icon">
-                        <i class="fas fa-key"></i>
-                    </div>
-                    <h4>Rotation de Mots de Passe</h4>
-                    <p class="text-muted">
-                        Génération automatique de mots de passe sécurisés avec rotation périodique
-                    </p>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card feature-card h-100">
-                    <div class="feature-icon">
-                        <i class="fas fa-cloud"></i>
-                    </div>
-                    <h4>Architecture Serverless</h4>
-                    <p class="text-muted">
-                        Basé sur OpenFaaS et Kubernetes pour une scalabilité et une fiabilité optimales
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tech Stack Section -->
-        <div class="card mt-5">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">
-                    <i class="fas fa-cogs me-2"></i>Stack Technique
-                </h3>
-                <div class="row text-center">
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fab fa-python fa-3x text-primary mb-2"></i>
-                        <p class="small">Python</p>
-                    </div>
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fas fa-cloud fa-3x text-info mb-2"></i>
-                        <p class="small">OpenFaaS</p>
-                    </div>
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fas fa-ship fa-3x text-success mb-2"></i>
-                        <p class="small">Docker</p>
-                    </div>
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fas fa-database fa-3x text-warning mb-2"></i>
-                        <p class="small">PostgreSQL</p>
-                    </div>
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fab fa-kubernetes fa-3x text-danger mb-2"></i>
-                        <p class="small">Kubernetes</p>
-                    </div>
-                    <div class="col-md-2 col-4 mb-3">
-                        <i class="fab fa-js-square fa-3x text-warning mb-2"></i>
-                        <p class="small">Django</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Features -->
-        <div class="card mt-4">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">
-                    <i class="fas fa-shield-alt me-2"></i>Fonctionnalités de Sécurité
-                </h3>
-                <div class="row">
-                    <div class="col-md-6">
-                        <ul class="list-unstyled">
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Authentification à deux facteurs (TOTP)
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Codes de récupération sécurisés
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Rotation automatique des mots de passe
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <ul class="list-unstyled">
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Chiffrement des données sensibles
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Logs d'audit complets
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                Validation des entrées utilisateur
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+<div class="hero">
+    <div class="container">
+        <h1>
+            <i class="fas fa-shield-alt"></i>
+            Authentification Sécurisée Cofrap
+        </h1>
+        <p>Plateforme moderne d'authentification avec authentification à deux facteurs et génération de mots de passe sécurisés</p>
+        <div class="hero-buttons">
+            <a href="{% url 'auth_app:login' %}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-sign-in-alt"></i> Se connecter
+            </a>
+            <a href="{% url 'auth_app:register' %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-user-plus"></i> S'inscrire
+            </a>
         </div>
     </div>
 </div>
+
+<div class="container">
+    <!-- Fonctionnalités -->
+    <section class="section fade-in">
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h4>Sécurité Renforcée</h4>
+                    <p>Authentification à deux facteurs et mots de passe sécurisés pour protéger vos comptes</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h4>Génération Automatique</h4>
+                    <p>Générez des mots de passe forts et uniques en un clic</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>2FA Mobile</h4>
+                    <p>Authentification à deux facteurs compatible avec toutes les applications mobiles</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistiques -->
+    <section class="section fade-in">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-5">Nos chiffres</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number">1,250+</div>
+                    <div class="stat-label">Utilisateurs actifs</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number">5,000+</div>
+                    <div class="stat-label">Mots de passe générés</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Temps de disponibilité</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="stat-card text-center">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Incidents de sécurité</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comment ça marche -->
+    <section class="section fade-in">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-5">Comment ça marche ?</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Créez votre compte</h4>
+                    <p>Inscrivez-vous en quelques secondes avec votre email et un mot de passe sécurisé</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Activez la 2FA</h4>
+                    <p>Scannez le QR code avec votre application d'authentification préférée</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Sécurisez vos comptes</h4>
+                    <p>Générez des mots de passe forts et gérez vos paramètres de sécurité</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Témoignages -->
+    <section class="section fade-in">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-5">Ce que disent nos utilisateurs</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <p>"Cofrap a révolutionné la façon dont je gère mes mots de passe. La génération automatique est géniale !"</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h6>Marie Dubois</h6>
+                            <small>Développeuse Web</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <p>"L'authentification à deux facteurs est simple à configurer et très sécurisée. Je recommande !"</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h6>Thomas Martin</h6>
+                            <small>Chef de projet IT</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <p>"Interface moderne et intuitive. La sécurité n'a jamais été aussi facile à gérer."</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h6>Sophie Bernard</h6>
+                            <small>Responsable sécurité</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.section {
+    padding: 4rem 0;
+}
+
+.section:nth-child(even) {
+    background: var(--gray-50);
+}
+
+.feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+.step-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    text-align: center;
+    position: relative;
+    height: 100%;
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 auto 1.5rem;
+}
+
+.testimonial-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    height: 100%;
+}
+
+.testimonial-content {
+    margin-bottom: 1.5rem;
+}
+
+.testimonial-content p {
+    font-style: italic;
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
+.testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.author-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.author-info h6 {
+    margin-bottom: 0.25rem;
+}
+
+.author-info small {
+    color: var(--gray-500);
+}
+
+@media (max-width: 768px) {
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .section {
+        padding: 2rem 0;
+    }
+}
+</style>
 {% endblock %} 

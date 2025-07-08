@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Authentification à Deux Facteurs - Cofrap{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1>
+            <i class="fas fa-shield-alt"></i>
+            Authentification à Deux Facteurs
+        </h1>
+        <p>Sécurisez votre compte avec une authentification renforcée</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <!-- État actuel de la 2FA -->
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="text-center">
+                        <i class="fas fa-mobile-alt"></i>
+                        État de votre 2FA
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5>Authentification à deux facteurs</h5>
+                            <p class="text-muted">
+                                {% if user_2fa_enabled %}
+                                    ✅ Votre compte est protégé par l'authentification à deux facteurs
+                                {% else %}
+                                    ⚠️ Votre compte n'est pas encore protégé par l'authentification à deux facteurs
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            {% if user_2fa_enabled %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check"></i> Activée
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="fas fa-exclamation-triangle"></i> Non activée
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if not user_2fa_enabled %}
+            <!-- Configuration de la 2FA -->
+            <div class="card fade-in mt-4">
+                <div class="card-header">
+                    <h4 class="text-center">
+                        <i class="fas fa-cog"></i>
+                        Configuration de la 2FA
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="setup-steps">
+                        <!-- Étape 1: Génération du QR Code -->
+                        <div class="step" id="step-1">
+                            <div class="step-header">
+                                <span class="step-number">1</span>
+                                <h5>Générer le QR Code</h5>
+                            </div>
+                            <div class="step-content">
+                                <p>Cliquez sur le bouton ci-dessous pour générer un nouveau QR Code pour votre application d'authentification.</p>
+                                <button type="button" class="btn btn-primary" id="generate-qr-btn">
+                                    <i class="fas fa-qrcode"></i>
+                                    Générer le QR Code
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Étape 2: Scanner le QR Code -->
+                        <div class="step" id="step-2" style="display: none;">
+                            <div class="step-header">
+                                <span class="step-number">2</span>
+                                <h5>Scanner le QR Code</h5>
+                            </div>
+                            <div class="step-content">
+                                <div class="qr-section">
+                                    <div class="qr-container">
+                                        <div id="qr-code-placeholder" class="qr-placeholder">
+                                            <i class="fas fa-qrcode fa-3x text-muted"></i>
+                                            <p class="mt-2">QR Code en cours de génération...</p>
+                                        </div>
+                                        <div id="qr-code-display" style="display: none;">
+                                            <img id="qr-code-image" alt="QR Code 2FA" class="qr-image">
+                                            <div class="qr-info">
+                                                <p><strong>Clé secrète:</strong> <span id="secret-key"></span></p>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="copy-secret">
+                                                    <i class="fas fa-copy"></i> Copier
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="qr-instructions">
+                                        <h6>Instructions :</h6>
+                                        <ol>
+                                            <li>Téléchargez une application d'authentification si vous n'en avez pas :
+                                                <ul>
+                                                    <li><strong>Google Authenticator</strong> (Android/iOS)</li>
+                                                    <li><strong>Authy</strong> (Android/iOS/Desktop)</li>
+                                                    <li><strong>Microsoft Authenticator</strong> (Android/iOS)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Ouvrez votre application d'authentification</li>
+                                            <li>Scannez le QR Code ci-dessus ou entrez manuellement la clé secrète</li>
+                                            <li>Notez les codes de récupération qui s'affichent</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Étape 3: Vérification -->
+                        <div class="step" id="step-3" style="display: none;">
+                            <div class="step-header">
+                                <span class="step-number">3</span>
+                                <h5>Vérifier la configuration</h5>
+                            </div>
+                            <div class="step-content">
+                                <p>Entrez le code à 6 chiffres affiché dans votre application d'authentification pour vérifier que tout fonctionne correctement.</p>
+                                
+                                <div class="form-group">
+                                    <label for="verification-code" class="form-label">
+                                        <i class="fas fa-mobile-alt"></i> Code de vérification
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control form-control-lg text-center" 
+                                           id="verification-code" 
+                                           placeholder="000000"
+                                           maxlength="6"
+                                           pattern="[0-9]{6}">
+                                    <small class="form-text text-muted">
+                                        Entrez le code à 6 chiffres de votre application
+                                    </small>
+                                </div>
+
+                                <div class="d-grid gap-2 mt-3">
+                                    <button type="button" class="btn btn-success btn-lg" id="verify-code-btn">
+                                        <i class="fas fa-check"></i>
+                                        Vérifier et Activer la 2FA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Gestion de la 2FA activée -->
+            <div class="card fade-in mt-4">
+                <div class="card-header">
+                    <h4 class="text-center">
+                        <i class="fas fa-tools"></i>
+                        Gestion de votre 2FA
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Codes de récupération</h6>
+                            <p class="text-muted">Vous avez <strong>{{ recovery_codes_count|default:10 }}</strong> codes de récupération restants.</p>
+                            <button type="button" class="btn btn-outline-primary" id="show-recovery-codes">
+                                <i class="fas fa-key"></i>
+                                Afficher les codes
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Désactiver la 2FA</h6>
+                            <p class="text-muted">Attention : cela réduira la sécurité de votre compte.</p>
+                            <button type="button" class="btn btn-outline-danger" id="disable-2fa-btn">
+                                <i class="fas fa-times"></i>
+                                Désactiver la 2FA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Informations sur la 2FA -->
+            <div class="card fade-in mt-4">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-info-circle"></i>
+                        À propos de l'authentification à deux facteurs
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>🔒 Comment ça marche ?</h6>
+                            <p>L'authentification à deux facteurs ajoute une couche de sécurité supplémentaire à votre compte. En plus de votre mot de passe, vous devrez entrer un code temporaire généré par votre application d'authentification.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📱 Applications recommandées</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fab fa-google"></i> Google Authenticator</li>
+                                <li><i class="fas fa-mobile-alt"></i> Authy</li>
+                                <li><i class="fab fa-microsoft"></i> Microsoft Authenticator</li>
+                                <li><i class="fas fa-lock"></i> 1Password</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-lightbulb"></i> Conseils de sécurité</h6>
+                        <ul class="mb-0">
+                            <li>Gardez vos codes de récupération dans un endroit sûr</li>
+                            <li>N'utilisez pas la même application pour plusieurs comptes sensibles</li>
+                            <li>Vérifiez régulièrement que votre application fonctionne</li>
+                            <li>En cas de perte d'accès, utilisez vos codes de récupération</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les codes de récupération -->
+<div class="modal fade" id="recoveryCodesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key"></i>
+                    Codes de récupération
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Important :</strong> Conservez ces codes dans un endroit sûr. Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil d'authentification.
+                </div>
+                
+                <div class="recovery-codes-container">
+                    <div class="row" id="recovery-codes-list">
+                        <!-- Les codes seront générés ici -->
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-primary" id="print-codes">
+                        <i class="fas fa-print"></i>
+                        Imprimer
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="download-codes">
+                        <i class="fas fa-download"></i>
+                        Télécharger
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const generateQrBtn = document.getElementById('generate-qr-btn');
+    const verifyCodeBtn = document.getElementById('verify-code-btn');
+    const verificationCode = document.getElementById('verification-code');
+    const showRecoveryCodesBtn = document.getElementById('show-recovery-codes');
+    const disable2faBtn = document.getElementById('disable-2fa-btn');
+
+    {% if not user_2fa_enabled %}
+    // Génération du QR Code
+    if (generateQrBtn) {
+        generateQrBtn.addEventListener('click', async function() {
+            this.innerHTML = '<span class="spinner"></span> Génération...';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/generate-2fa/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Afficher le QR Code
+                    document.getElementById('qr-code-placeholder').style.display = 'none';
+                    document.getElementById('qr-code-display').style.display = 'block';
+                    document.getElementById('qr-code-image').src = data.qr_code_url;
+                    document.getElementById('secret-key').textContent = data.secret_key;
+                    
+                    // Passer à l'étape suivante
+                    document.getElementById('step-1').style.display = 'none';
+                    document.getElementById('step-2').style.display = 'block';
+                    document.getElementById('step-3').style.display = 'block';
+                    
+                    showNotification('QR Code généré avec succès !', 'success');
+                } else {
+                    throw new Error('Erreur lors de la génération');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la génération du QR Code', 'error');
+            } finally {
+                this.innerHTML = '<i class="fas fa-qrcode"></i> Générer le QR Code';
+                this.disabled = false;
+            }
+        });
+    }
+
+    // Copier la clé secrète
+    const copySecretBtn = document.getElementById('copy-secret');
+    if (copySecretBtn) {
+        copySecretBtn.addEventListener('click', function() {
+            const secretKey = document.getElementById('secret-key').textContent;
+            navigator.clipboard.writeText(secretKey).then(() => {
+                showNotification('Clé secrète copiée !', 'success');
+            });
+        });
+    }
+
+    // Vérification du code
+    if (verifyCodeBtn) {
+        verifyCodeBtn.addEventListener('click', async function() {
+            const code = verificationCode.value.trim();
+            
+            if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+                showNotification('Veuillez entrer un code à 6 chiffres valide', 'error');
+                return;
+            }
+
+            this.innerHTML = '<span class="spinner"></span> Vérification...';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/verify-2fa/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        code: code
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification('2FA activée avec succès !', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        showNotification('Code incorrect. Veuillez réessayer.', 'error');
+                    }
+                } else {
+                    throw new Error('Erreur lors de la vérification');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la vérification', 'error');
+            } finally {
+                this.innerHTML = '<i class="fas fa-check"></i> Vérifier et Activer la 2FA';
+                this.disabled = false;
+            }
+        });
+    }
+
+    // Auto-soumission quand le code est complet
+    if (verificationCode) {
+        verificationCode.addEventListener('input', function() {
+            if (this.value.length === 6) {
+                verifyCodeBtn.click();
+            }
+        });
+    }
+    {% endif %}
+
+    {% if user_2fa_enabled %}
+    // Afficher les codes de récupération
+    if (showRecoveryCodesBtn) {
+        showRecoveryCodesBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch('/get-recovery-codes/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayRecoveryCodes(data.recovery_codes);
+                    new bootstrap.Modal(document.getElementById('recoveryCodesModal')).show();
+                } else {
+                    throw new Error('Erreur lors de la récupération');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la récupération des codes', 'error');
+            }
+        });
+    }
+
+    // Désactiver la 2FA
+    if (disable2faBtn) {
+        disable2faBtn.addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir désactiver l\'authentification à deux facteurs ? Cela réduira la sécurité de votre compte.')) {
+                disable2FA();
+            }
+        });
+    }
+    {% endif %}
+
+    // Fonction pour afficher les codes de récupération
+    function displayRecoveryCodes(codes) {
+        const container = document.getElementById('recovery-codes-list');
+        container.innerHTML = '';
+        
+        codes.forEach((code, index) => {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 mb-2';
+            col.innerHTML = `
+                <div class="recovery-code-item">
+                    <span class="code-number">${index + 1}</span>
+                    <span class="code-value">${code}</span>
+                </div>
+            `;
+            container.appendChild(col);
+        });
+    }
+
+    // Fonction pour désactiver la 2FA
+    async function disable2FA() {
+        try {
+            const response = await fetch('/disable-2fa/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+
+            if (response.ok) {
+                showNotification('2FA désactivée avec succès', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                throw new Error('Erreur lors de la désactivation');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors de la désactivation', 'error');
+        }
+    }
+
+    // Fonction de notification
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} notification`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="close" onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.setup-steps {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.step {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    background: white;
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.qr-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.qr-container {
+    text-align: center;
+}
+
+.qr-placeholder {
+    padding: 2rem;
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--border-radius);
+    color: var(--gray-600);
+}
+
+.qr-image {
+    max-width: 200px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+}
+
+.qr-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+}
+
+.qr-instructions {
+    font-size: 0.9rem;
+}
+
+.qr-instructions ol {
+    padding-left: 1.2rem;
+}
+
+.qr-instructions ul {
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.recovery-codes-container {
+    background: var(--gray-50);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+}
+
+.recovery-code-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.code-number {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    margin-right: 0.75rem;
+    font-size: 0.8rem;
+    min-width: 30px;
+    text-align: center;
+}
+
+.code-value {
+    color: var(--primary-color);
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .qr-section {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .recovery-code-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .code-number {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %} 
