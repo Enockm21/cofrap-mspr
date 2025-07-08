@@ -1,0 +1,72 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+
+functions:
+  generate-password:
+    lang: python3-http-debian
+    handler: ./functions/generate_password
+    image: enock17/generate-password:v1.0
+    environment:
+      POSTGRES_HOST: votre-serveur-db.com  # Remplacer par votre serveur DB
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: votre-mot-de-passe-securise
+      POSTGRES_PORT: 5432
+    labels:
+      com.openfaas.function: "generate-password"
+      com.openfaas.description: "password-rotation"
+    annotations:
+      topic: "password-management"
+    limits:
+      memory: 256Mi
+      cpu: 200m
+    requests:
+      memory: 128Mi
+      cpu: 100m
+
+  authenticate-user:
+    lang: python3-http-debian
+    handler: ./functions/authenticate_user
+    image: enock17/authenticate-user:v1.0
+    environment:
+      POSTGRES_HOST: votre-serveur-db.com  # Remplacer par votre serveur DB
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: votre-mot-de-passe-securise
+      POSTGRES_PORT: 5432
+      JWT_SECRET_KEY: votre-cle-secrete-jwt-super-securisee
+    labels:
+      com.openfaas.function: "authenticate-user"
+      com.openfaas.description: "user-auth-2fa"
+    annotations:
+      topic: "authentication"
+    limits:
+      memory: 256Mi
+      cpu: 200m
+    requests:
+      memory: 128Mi
+      cpu: 100m
+
+  generate-2fa:
+    lang: python3-http-debian
+    handler: ./functions/generate_2fa
+    image: enock17/generate-2fa:v1.0
+    environment:
+      POSTGRES_HOST: votre-serveur-db.com  # Remplacer par votre serveur DB
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: votre-mot-de-passe-securise
+      POSTGRES_PORT: 5432
+    labels:
+      com.openfaas.function: "generate-2fa"
+      com.openfaas.description: "totp-2fa-qrcode"
+    annotations:
+      topic: "two-factor-auth"
+    limits:
+      memory: 256Mi
+      cpu: 200m
+    requests:
+      memory: 128Mi
+      cpu: 100m 

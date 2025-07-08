@@ -1,276 +1,272 @@
-# Guide de Déploiement OpenFaaS - MSPR2 COFRAP
+# 🚀 Guide de Déploiement en Production - MSPR2 COFRAP
 
-## 📋 Résumé du Projet
+## 📋 Prérequis sur Votre Serveur
 
-Ce projet implémente un système de gestion d'authentification sécurisée avec :
-- **Génération de mots de passe sécurisés** avec rotation automatique
-- **Authentification à deux facteurs (2FA)** avec codes TOTP
-- **Authentification d'utilisateurs** avec vérification 2FA
-- **Interface web Django** pour la gestion
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Frontend       │    │  Functions      │    │  Database       │
-│  Django         │───▶│  OpenFaaS       │───▶│  PostgreSQL     │
-│  Port: 8000     │    │  Ports: 8081-83 │    │  Port: 5432     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## 🚀 Déploiement Actuel (Docker Compose)
-
-### ✅ État des Services
-
+### 1. Installation d'OpenFaaS
 ```bash
-# Vérifier l'état des containers
-docker ps
+# Installation d'OpenFaaS
+curl -sL https://cli.openfaas.com | sh
 
-# Services actifs :
-# - mspr2-cofrap-frontend (8000)
-# - mspr2-cofrap-generate-password (8081)
-# - mspr2-cofrap-generate-2fa (8082) 
-# - mspr2-cofrap-authenticate-user (8083)
-# - mspr2-cofrap-postgres (5432)
+# Ou avec Docker
+docker run -d --name openfaas \
+  --restart=always \
+  -p 8080:8080 \
+  -p 9090:9090 \
+  openfaas/gateway:latest
 ```
 
-### 🔧 Commandes de Gestion
-
+### 2. Installation de Docker (si pas déjà fait)
 ```bash
-# Démarrer tous les services
-docker-compose up -d
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
 
-# Arrêter tous les services
-docker-compose down
-
-# Voir les logs
-docker-compose logs -f [service-name]
-
-# Redémarrer un service
-docker-compose restart [service-name]
+# CentOS/RHEL
+sudo yum install -y docker
+sudo systemctl start docker
+sudo systemctl enable docker
 ```
 
-## 🧪 Tests des Fonctions
-
-### 1. Génération de Mot de Passe
-
+### 3. Configuration de la Base de Données Distante
 ```bash
-# Test basique
-curl -X POST http://localhost:8081/function \
-  -H "Content-Type: application/json" \
-  -d '{"length": 16, "include_symbols": true}'
+# Sur votre serveur de base de données
+sudo -u postgres psql
 
-# Test avec utilisateur (sauvegarde en BDD)
-curl -X POST http://localhost:8081/function \
-  -H "Content-Type: application/json" \
-  -d '{"length": 12, "include_symbols": true, "user_id": 1}'
+# Créer l'utilisateur et la base
+CREATE USER cofrap WITH PASSWORD 'votre-mot-de-passe-securise';
+CREATE DATABASE cofrap_db OWNER cofrap;
+GRANT ALL PRIVILEGES ON DATABASE cofrap_db TO cofrap;
+\q
+
+# Initialiser la base de données
+psql -h localhost -U cofrap -d cofrap_db -f init_local_db.sql
+psql -h localhost -U cofrap -d cofrap_db -f add_test_users.sql
 ```
 
-**Réponse attendue :**
-```json
-{
-  "password": "@u@LxwTtr@LZ",
-  "hash": "124686471c9e5a785b53ee08ce42d4cb6c7645f6da215de2ef901d2e496c4e5c",
-  "salt": "d94355707c4a4119a65184b71991cdd2",
-  "generated_at": "2025-06-26T15:37:02.364409",
-  "expires_at": null
-}
-```
+## 🔧 Étapes de Déploiement
 
-### 2. Génération 2FA
-
+### Étape 1: Préparer les Images Docker
 ```bash
-# Générer une clé 2FA pour un utilisateur
-curl -X POST http://localhost:8082/function \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": 1, "user_email": "admin@mspr2-cofrap.local"}'
+# Sur votre machine de développement
+docker tag enock17/generate-password:latest enock17/generate-password:v1.0
+docker tag enock17/authenticate-user:latest enock17/authenticate-user:v1.0
+docker tag enock17/generate-2fa:latest enock17/generate-2fa:v1.0
+
+# Pousser sur Docker Hub
+docker push enock17/generate-password:v1.0
+docker push enock17/authenticate-user:v1.0
+docker push enock17/generate-2fa:v1.0
 ```
 
-**Réponse attendue :**
-```json
-{
-  "secret_key": "3LPBYEVAN6CW54HUYLZFD4TNMHPRO5NY",
-  "qr_code": "iVBORw0KGgo...[base64]",
-  "provisioning_uri": "otpauth://totp/MSPR2-Cofrap:admin%40mspr2-cofrap.local?secret=...",
-  "recovery_codes": ["PU7VJH3K", "8UKLO85U", ...],
-  "generated_at": "2025-06-26T15:38:10.662628",
-  "expires_at": "2026-06-26T15:38:10.662631"
-}
-```
-
-### 3. Authentification
-
+### Étape 2: Transférer les Fichiers sur le Serveur
 ```bash
-# Test d'authentification sans 2FA
-curl -X POST http://localhost:8083/function \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "mot_de_passe_généré"}'
-
-# Test avec code 2FA
-curl -X POST http://localhost:8083/function \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "mot_de_passe", "two_factor_code": "123456"}'
+# Copier les fichiers nécessaires
+scp stack-production.yml user@votre-serveur.com:/home/user/
+scp deploy-production.sh user@votre-serveur.com:/home/user/
+scp db/init_local_db.sql user@votre-serveur.com:/home/user/
+scp db/add_test_users.sql user@votre-serveur.com:/home/user/
 ```
 
-## 🔄 Migration vers OpenFaaS (Option Avancée)
-
-Pour déployer sur un cluster OpenFaaS Kubernetes :
-
-### 1. Prérequis
-
+### Étape 3: Déployer sur le Serveur
 ```bash
-# Installer OpenFaaS CLI
-curl -sL https://cli.openfaas.com | sudo sh
+# Se connecter au serveur
+ssh user@votre-serveur.com
 
-# Vérifier l'installation
-faas-cli version
+# Rendre le script exécutable
+chmod +x deploy-production.sh
+
+# Déployer avec vos paramètres
+./deploy-production.sh "votre-serveur-db.com" "votre-mot-de-passe-securise" "votre-cle-secrete-jwt"
 ```
 
-### 2. Fichiers de Configuration
+## 🔒 Configuration de Sécurité
 
-Les fichiers `stack.yml` et templates sont prêts dans le dossier :
-- `stack.yml` : Configuration des 3 fonctions
-- `functions/*/handler.py` : Code adapté au format HTTP
-- `deploy_functions.sh` : Script de déploiement automatisé
-
-### 3. Déploiement OpenFaaS
-
+### 1. Variables d'Environnement Sécurisées
 ```bash
-# Construire les images
-faas-cli build -f stack.yml
+# Créer un fichier .env sécurisé
+cat > .env << EOF
+POSTGRES_HOST=votre-serveur-db.com
+POSTGRES_DB=cofrap_db
+POSTGRES_USER=cofrap
+POSTGRES_PASSWORD=votre-mot-de-passe-securise
+POSTGRES_PORT=5432
+JWT_SECRET_KEY=votre-cle-secrete-jwt-super-securisee
+EOF
 
-# Déployer les fonctions
-faas-cli deploy -f stack.yml
-
-# Vérifier le déploiement
-faas-cli list
+# Protéger le fichier
+chmod 600 .env
 ```
 
-## 🗄️ Base de Données
-
-### Structure
-
-- **users** : Utilisateurs du système
-- **password_history** : Historique des mots de passe
-- **two_factor_auth** : Configuration 2FA
-- **recovery_codes** : Codes de récupération
-- **login_logs** : Logs d'authentification
-
-### Initialisation
-
+### 2. Configuration du Firewall
 ```bash
-# Exécuter le script d'initialisation
-docker exec -i mspr2-cofrap-postgres psql -U postgres < k8s/postgres-init.sql
-
-# Se connecter à la base
-docker exec -it mspr2-cofrap-postgres psql -U postgres -d mspr2_cofrap
+# Ouvrir uniquement les ports nécessaires
+sudo ufw allow 8080/tcp  # OpenFaaS Gateway
+sudo ufw allow 5432/tcp  # PostgreSQL (si sur le même serveur)
+sudo ufw enable
 ```
 
-## 🌐 Interface Web
-
-Accéder à l'interface Django :
-- **URL** : http://localhost:8000
-- **Admin** : Créer un superuser Django si nécessaire
-
+### 3. Configuration SSL/HTTPS
 ```bash
-# Créer un superuser Django
-docker exec -it mspr2-cofrap-frontend python manage.py createsuperuser
+# Installer Certbot
+sudo apt install certbot
+
+# Obtenir un certificat SSL
+sudo certbot certonly --standalone -d votre-domaine.com
+
+# Configurer Nginx avec SSL
+sudo nano /etc/nginx/sites-available/openfaas
 ```
 
-## 🔧 Surveillance et Monitoring
+## 📊 Monitoring et Logs
 
-### Logs
-
+### 1. Surveillance des Fonctions
 ```bash
-# Voir les logs de toutes les fonctions
-docker-compose logs -f
+# Voir les logs en temps réel
+faas-cli logs generate-password --follow
 
-# Logs spécifiques
-docker-compose logs -f mspr2-cofrap-generate-password
-docker-compose logs -f mspr2-cofrap-authenticate-user
-docker-compose logs -f mspr2-cofrap-generate-2fa
+# Voir les statistiques
+faas-cli list --verbose
+
+# Surveiller les ressources
+docker stats
 ```
 
-### Health Checks
+### 2. Configuration de Prometheus
+```yaml
+# prometheus.yml
+global:
+  scrape_interval: 15s
 
+scrape_configs:
+  - job_name: 'openfaas'
+    static_configs:
+      - targets: ['gateway:8080']
+    metrics_path: /metrics
+```
+
+### 3. Alertes
+```yaml
+# alertmanager.yml
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertmanager@votre-domaine.com'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'email-notifications'
+
+receivers:
+  - name: 'email-notifications'
+    email_configs:
+      - to: 'admin@votre-domaine.com'
+```
+
+## 🔄 Mise à Jour et Maintenance
+
+### 1. Mise à Jour des Fonctions
 ```bash
-# Script de vérification automatique
+# Créer une nouvelle version
+docker tag enock17/generate-password:latest enock17/generate-password:v1.1
+docker push enock17/generate-password:v1.1
+
+# Mettre à jour le fichier de configuration
+sed -i 's/v1.0/v1.1/g' stack-production.yml
+
+# Redéployer
+faas-cli deploy -f stack-production.yml
+```
+
+### 2. Sauvegarde de la Base de Données
+```bash
+# Script de sauvegarde automatique
 #!/bin/bash
-echo "🔍 Vérification des services MSPR2-COFRAP..."
+DATE=$(date +%Y%m%d_%H%M%S)
+pg_dump -h votre-serveur-db.com -U cofrap cofrap_db > backup_$DATE.sql
+gzip backup_$DATE.sql
 
-services=("8081" "8082" "8083" "8000")
-names=("generate-password" "generate-2fa" "authenticate-user" "frontend")
-
-for i in ${!services[@]}; do
-    if curl -s http://localhost:${services[$i]} > /dev/null; then
-        echo "✅ ${names[$i]} (${services[$i]}) : OK"
-    else
-        echo "❌ ${names[$i]} (${services[$i]}) : ERREUR"
-    fi
-done
+# Ajouter au crontab pour une sauvegarde quotidienne
+# 0 2 * * * /path/to/backup-script.sh
 ```
 
-## 🚨 Dépannage
+### 3. Rollback en Cas de Problème
+```bash
+# Revenir à la version précédente
+sed -i 's/v1.1/v1.0/g' stack-production.yml
+faas-cli deploy -f stack-production.yml
+```
+
+## 🧪 Tests de Validation
+
+### 1. Tests Fonctionnels
+```bash
+# Test de génération de mot de passe
+curl -X POST https://votre-domaine.com/function/generate-password \
+  -H 'Content-Type: application/json' \
+  -d '{"length": 16}'
+
+# Test d'authentification
+curl -X POST https://votre-domaine.com/function/authenticate-user \
+  -H 'Content-Type: application/json' \
+  -d '{"username": "demo", "password": "password"}'
+
+# Test de génération 2FA
+curl -X POST https://votre-domaine.com/function/generate-2fa \
+  -H 'Content-Type: application/json' \
+  -d '{"user_id": 1, "username": "demo"}'
+```
+
+### 2. Tests de Performance
+```bash
+# Test de charge avec Apache Bench
+ab -n 1000 -c 10 -H "Content-Type: application/json" \
+  -p test-data.json \
+  https://votre-domaine.com/function/generate-password
+```
+
+## 🆘 Dépannage
 
 ### Problèmes Courants
 
-1. **Base de données non initialisée**
+1. **Fonction ne répond pas**
    ```bash
-   docker exec -i mspr2-cofrap-postgres psql -U postgres < k8s/postgres-init.sql
+   # Vérifier les logs
+   faas-cli logs generate-password
+   
+   # Vérifier la configuration
+   faas-cli describe generate-password
    ```
 
-2. **Port déjà utilisé**
+2. **Erreur de connexion à la base de données**
    ```bash
-   # Trouver le processus utilisant le port
-   lsof -i :8081
-   # Arrêter Docker Compose et redémarrer
-   docker-compose down && docker-compose up -d
+   # Tester la connexion
+   psql -h votre-serveur-db.com -U cofrap -d cofrap_db
+   
+   # Vérifier les variables d'environnement
+   faas-cli describe generate-password --env
    ```
 
-3. **Problème de connexion DB**
+3. **Problème de mémoire**
    ```bash
-   # Vérifier l'état du container PostgreSQL
-   docker logs mspr2-cofrap-postgres
+   # Augmenter les limites
+   # Modifier stack-production.yml
+   limits:
+     memory: 512Mi
+     cpu: 300m
    ```
-
-### Variables d'Environnement
-
-```bash
-# Configuration PostgreSQL
-POSTGRES_HOST=postgres
-POSTGRES_DB=mspr2_cofrap
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-
-# Configuration JWT
-JWT_SECRET_KEY=your-secret-key-change-in-production
-```
-
-## 🎯 Prochaines Étapes
-
-1. **Sécurisation** :
-   - Changer les mots de passe par défaut
-   - Configurer HTTPS
-   - Implémenter rate limiting
-
-2. **Optimisation** :
-   - Mise en cache Redis
-   - Load balancing
-   - Monitoring avec Prometheus
-
-3. **CI/CD** :
-   - Pipeline GitHub Actions
-   - Tests automatisés
-   - Déploiement automatique
 
 ## 📞 Support
 
-Pour toute question ou problème :
-- Consulter les logs : `docker-compose logs -f`
-- Vérifier l'état : `docker ps`
-- Tests : Utiliser les commandes curl ci-dessus
+- **Logs OpenFaaS**: `faas-cli logs [function-name]`
+- **Statut des services**: `faas-cli list`
+- **Documentation OpenFaaS**: https://docs.openfaas.com/
+- **Support technique**: enock.mukokom@gmail.com
 
 ---
 
-**Équipe COFRAP - MSPR2 2025** 🔐
+**Version**: 1.0  
+**Dernière mise à jour**: Juillet 2025  
+**Auteur**: Enock Mukokom
 
