@@ -43,19 +43,19 @@ chmod +x db/init_local_database.sh
 ```bash
 
 # Initialiser la base de données
-Connection
+# Connection
 psql postgres
 
-CREATE USER cofrap WITH PASSWORD 'password';
-CREATE DATABASE cofrap_db OWNER cofrap;
+CREATE USER XXX WITH PASSWORD '';
+CREATE DATABASE XX OWNER "";
 ## Création de la base de données locale
-psql -h localhost -U cofrap -d cofrap_db -f db/init_local_db.sql
+psql -h localhost -U XX -d XX -f db/init_local_db.sql
 ```
 
 ### 4. Ajout d'Utilisateurs de Test
 ```bash
 # Ajouter des utilisateurs avec des mots de passe connus
-psql -h localhost -U cofrap -d cofrap_db -f db/add_test_users.sql
+psql -h localhost -U XX -d XX -f db/add_test_users.sql
 ```
 
 **Utilisateurs de test disponibles :**
