@@ -1,0 +1,71 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+
+functions:
+  generate-password-v2:
+    lang: python3-http-debian
+    handler: ./functions/generate_password_v2
+    image: enock17/generate-password-v2:latest
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: password
+      ENCRYPTION_KEY: votre-cle-secrete-jwt-super-securisee
+    labels:
+      com.openfaas.function: "generate-password-v2"
+      com.openfaas.description: "password-rotation-v2"
+    annotations:
+      topic: "password-management-v2"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+  
+  generate-2fa-v2:
+    lang: python3-http-debian
+    handler: ./functions/generate_2fa_v2
+    image: generate-2fa-v2:latest
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: password
+      ENCRYPTION_KEY: votre-cle-secrete-jwt-super-securisee
+    labels:
+      com.openfaas.function: "generate-2fa-v2"
+      com.openfaas.description: "totp-2fa-qrcode-v2"
+    annotations:
+      topic: "two-factor-auth-v2"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
+
+  authenticate-user-v2:
+    lang: python3-http-debian
+    handler: ./functions/authenticate_user_v2
+    image: enock17/authenticate-user-v2:latest
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: password
+      ENCRYPTION_KEY: votre-cle-secrete-jwt-super-securisee
+    labels:
+      com.openfaas.function: "authenticate-user-v2"
+      com.openfaas.description: "user-auth-2fa-v2"
+    annotations:
+      topic: "authentication-v2"
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 64Mi
+      cpu: 50m
