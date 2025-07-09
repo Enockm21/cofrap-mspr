@@ -14,9 +14,27 @@ def handle(event, context):
     Fonction serverless pour générer des codes 2FA (TOTP)
     """
     try:
+        print(f"DEBUG: Event reçu: {event}")
+        print(f"DEBUG: Type de event: {type(event)}")
+        
         # Parser les paramètres depuis le body de la requête
-        body = event.get('body', '{}')
-        data = json.loads(body) if body else {}
+        if hasattr(event, 'body'):
+            body = event.body
+            if isinstance(body, bytes):
+                body = body.decode('utf-8')
+        elif isinstance(event, str):
+            body = event
+        else:
+            body = str(event)
+            
+        print(f"DEBUG: Body reçu: {body}")
+        
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            data = {}
+            
+        print(f"DEBUG: Data parsée: {data}")
         
         # Paramètres de génération
         user_id = data.get('user_id')
@@ -24,13 +42,9 @@ def handle(event, context):
         issuer = data.get('issuer', 'MSPR2-Cofrap')
         
         if not user_id or not user_email:
-            return {
-                'statusCode': 400,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({
-                    'error': 'user_id et user_email sont requis'
-                })
-            }
+            return json.dumps({
+                'error': 'user_id et user_email sont requis'
+            })
         
         # Génération d'une clé secrète pour TOTP
         secret_key = pyotp.random_base32()
@@ -65,31 +79,20 @@ def handle(event, context):
         recovery_codes = generate_recovery_codes()
         store_recovery_codes(db_connection, user_id, recovery_codes)
         
-        return {
-            'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({
-                'secret_key': secret_key,
-                'qr_code': qr_code_base64,
-                'provisioning_uri': provisioning_uri,
-                'recovery_codes': recovery_codes,
-                'generated_at': datetime.now().isoformat(),
-                'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
-            })
-        }
+        return json.dumps({
+            'success': True,
+            'secret_key': secret_key,
+            'qr_code': qr_code_base64,
+            'provisioning_uri': provisioning_uri,
+            'recovery_codes': recovery_codes,
+            'generated_at': datetime.now().isoformat(),
+            'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
+        })
         
     except json.JSONDecodeError:
-        return {
-            'statusCode': 400,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': 'Format JSON invalide'})
-        }
+        return json.dumps({'error': 'Format JSON invalide'})
     except Exception as e:
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': f'Erreur interne: {str(e)}'})
-        }
+        return json.dumps({'error': f'Erreur interne: {str(e)}'})
 
 def get_db_connection():
     """Connexion à la base de données PostgreSQL"""

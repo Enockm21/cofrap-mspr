@@ -54,10 +54,11 @@ functions:
     handler: ./functions/generate_2fa
     image: enock17/generate-2fa:latest
     environment:
-      POSTGRES_HOST: postgres.mspr2-cofrap.svc.cluster.local
-      POSTGRES_DB: mspr2_cofrap
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_DB: cofrap_db
+      POSTGRES_USER: cofrap
+      POSTGRES_PASSWORD: 
+      POSTGRES_PORT: 5432
     labels:
       com.openfaas.function: "generate-2fa"
       com.openfaas.description: "totp-2fa-qrcode"
