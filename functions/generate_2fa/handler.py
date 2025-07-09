@@ -8,11 +8,21 @@ from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import pyotp
+from cryptography.fernet import Fernet
 
 def handle(event, context):
     """
     Fonction serverless pour générer des codes 2FA (TOTP)
     """
+    # Gérer les requêtes OPTIONS pour CORS preflight
+    if hasattr(event, 'method') and event.method == 'OPTIONS':
+        return context.headers({
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '3600'
+        }).status(200).succeed('')
+    
     try:
         print(f"DEBUG: Event reçu: {event}")
         print(f"DEBUG: Type de event: {type(event)}")
@@ -37,17 +47,26 @@ def handle(event, context):
         print(f"DEBUG: Data parsée: {data}")
         
         # Paramètres de génération
-        user_id = data.get('user_id')
-        user_email = data.get('user_email')
+        username = data.get('username')
         issuer = data.get('issuer', 'MSPR2-Cofrap')
         
-        if not user_id or not user_email:
+        if not username:
             return json.dumps({
-                'error': 'user_id et user_email sont requis'
+                'error': 'username est requis'
             })
         
         # Génération d'une clé secrète pour TOTP
         secret_key = pyotp.random_base32()
+        
+        # Connexion à PostgreSQL
+        db_connection = get_db_connection()
+        
+        # Récupération de l'email de l'utilisateur depuis la base
+        user_email = get_user_email(db_connection, username)
+        if not user_email:
+            return json.dumps({
+                'error': 'Utilisateur non trouvé dans la base de données'
+            })
         
         # Création de l'objet TOTP
         totp = pyotp.TOTP(secret_key)
@@ -69,17 +88,19 @@ def handle(event, context):
         img.save(img_buffer, format='PNG')
         qr_code_base64 = base64.b64encode(img_buffer.getvalue()).decode()
         
-        # Connexion à PostgreSQL
-        db_connection = get_db_connection()
+        # Chiffrement du secret 2FA
+        encryption_key = get_encryption_key()
+        fernet = Fernet(encryption_key)
+        encrypted_secret = fernet.encrypt(secret_key.encode()).decode()
         
-        # Stockage de la clé secrète en base (chiffrée)
-        store_2fa_secret(db_connection, user_id, secret_key, user_email)
+        # Stockage de la clé secrète chiffrée en base
+        store_2fa_secret(db_connection, username, encrypted_secret, user_email)
         
         # Génération d'un code de récupération
         recovery_codes = generate_recovery_codes()
-        store_recovery_codes(db_connection, user_id, recovery_codes)
+        store_recovery_codes(db_connection, username, recovery_codes)
         
-        return json.dumps({
+        response = json.dumps({
             'success': True,
             'secret_key': secret_key,
             'qr_code': qr_code_base64,
@@ -89,31 +110,68 @@ def handle(event, context):
             'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
         })
         
+        return context.headers({
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }).status(200).succeed(response)
+        
     except json.JSONDecodeError:
-        return json.dumps({'error': 'Format JSON invalide'})
+        error_response = json.dumps({'error': 'Format JSON invalide'})
+        return context.headers({
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }).status(400).succeed(error_response)
     except Exception as e:
-        return json.dumps({'error': f'Erreur interne: {str(e)}'})
+        error_response = json.dumps({'error': f'Erreur interne: {str(e)}'})
+        return context.headers({
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }).status(500).succeed(error_response)
+
+def get_encryption_key():
+    """Récupération de la clé de chiffrement depuis les variables d'environnement"""
+    key = os.getenv('ENCRYPTION_KEY')
+    if not key:
+        # Génération d'une clé par défaut (à changer en production)
+        key = Fernet.generate_key().decode()
+        print("⚠️  ATTENTION: Utilisation d'une clé de chiffrement par défaut")
+    return key.encode()
 
 def get_db_connection():
     """Connexion à la base de données PostgreSQL"""
     return psycopg2.connect(
-        host=os.getenv('POSTGRES_HOST', 'postgres'),
-        database=os.getenv('POSTGRES_DB', 'mspr2_cofrap'),
-        user=os.getenv('POSTGRES_USER', 'postgres'),
+        host=os.getenv('POSTGRES_HOST', 'host.docker.internal'),
+        database=os.getenv('POSTGRES_DB', 'cofrap_db'),
+        user=os.getenv('POSTGRES_USER', 'cofrap'),
         password=os.getenv('POSTGRES_PASSWORD', 'password')
     )
 
-def store_2fa_secret(conn, user_id, secret_key, user_email):
-    """Stockage de la clé secrète 2FA en base"""
+def get_user_email(conn, username):
+    """Récupération de l'email de l'utilisateur depuis la table users"""
     with conn.cursor() as cursor:
+        cursor.execute("SELECT email FROM users WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+
+def store_2fa_secret(conn, username, encrypted_secret, user_email):
+    """Stockage de la clé secrète 2FA chiffrée en base"""
+    with conn.cursor() as cursor:
+        # Mise à jour directe dans la table users
         cursor.execute("""
-            INSERT INTO two_factor_auth (user_id, secret_key, user_email, created_at, is_active)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (user_id) DO UPDATE SET 
-                secret_key = EXCLUDED.secret_key,
-                updated_at = %s,
-                is_active = %s
-        """, (user_id, secret_key, user_email, datetime.now(), True, datetime.now(), True))
+            UPDATE users 
+            SET mfa = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE username = %s
+        """, (encrypted_secret, username))
+        
+        if cursor.rowcount == 0:
+            raise Exception(f"Utilisateur {username} non trouvé")
+        
         conn.commit()
 
 def generate_recovery_codes():
@@ -125,9 +183,17 @@ def generate_recovery_codes():
         codes.append(code)
     return codes
 
-def store_recovery_codes(conn, user_id, recovery_codes):
+def store_recovery_codes(conn, username, recovery_codes):
     """Stockage des codes de récupération"""
     with conn.cursor() as cursor:
+        # Récupérer l'ID de l'utilisateur
+        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+        user_result = cursor.fetchone()
+        if not user_result:
+            raise Exception(f"Utilisateur {username} non trouvé")
+        
+        user_id = user_result[0]
+        
         # Suppression des anciens codes
         cursor.execute("DELETE FROM recovery_codes WHERE user_id = %s", (user_id,))
         
