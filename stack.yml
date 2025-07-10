@@ -12,7 +12,7 @@ functions:
       POSTGRES_HOST: host.docker.internal
       POSTGRES_DB: cofrap_db
       POSTGRES_USER: cofrap
-      POSTGRES_PASSWORD: 
+      POSTGRES_PASSWORD: password
       POSTGRES_PORT: 5432
     labels:
       com.openfaas.function: "generate-password"
@@ -34,7 +34,7 @@ functions:
       POSTGRES_HOST: host.docker.internal
       POSTGRES_DB: cofrap_db
       POSTGRES_USER: cofrap
-      POSTGRES_PASSWORD: 
+      POSTGRES_PASSWORD: password
       POSTGRES_PORT: 5432
       JWT_SECRET_KEY: your-secret-key-change-in-production
     labels:
@@ -57,7 +57,7 @@ functions:
       POSTGRES_HOST: host.docker.internal
       POSTGRES_DB: cofrap_db
       POSTGRES_USER: cofrap
-      POSTGRES_PASSWORD: 
+      POSTGRES_PASSWORD: password
       POSTGRES_PORT: 5432
     labels:
       com.openfaas.function: "generate-2fa"

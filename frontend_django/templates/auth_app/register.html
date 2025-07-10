@@ -7,21 +7,50 @@
 <div class="hero">
     <div class="container">
         <h1>Créer votre compte</h1>
-        <p>Rejoignez notre plateforme d'authentification sécurisée</p>
+        <p>Workflow d'inscription sécurisé en 4 étapes</p>
     </div>
 </div>
 
 <div class="container">
+    <!-- Indicateur de progression -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-12 col-lg-8">
+            <div class="workflow-steps">
+                <div class="step active">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Création utilisateur</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Génération mot de passe</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Configuration 2FA</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Authentification</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-6">
             <div class="card fade-in">
                 <div class="card-header">
                     <h3 class="text-center">
                         <i class="fas fa-user-plus"></i>
-                        Inscription
+                        Étape 1: Création utilisateur
                     </h3>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nouveau workflow :</strong> Après cette étape, nous générerons automatiquement un mot de passe sécurisé et configurerons l'authentification à deux facteurs.
+                    </div>
+
                     <form method="post" data-validate>
                         {% csrf_token %}
                         
@@ -33,125 +62,35 @@
                                    class="form-control" 
                                    id="username" 
                                    name="username" 
-                                   value="{{ form.username.value|default:'' }}"
+                                   value="{{ request.POST.username|default:'' }}"
                                    required 
                                    minlength="3"
-                                   maxlength="30">
-                            {% if form.username.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.username.errors.0 }}
-                                </div>
-                            {% endif %}
+                                   maxlength="30"
+                                   placeholder="Votre nom d'utilisateur unique">
+                            <small class="form-text text-muted">
+                                Entre 3 et 30 caractères, lettres et chiffres uniquement
+                            </small>
                         </div>
 
                         <div class="form-group">
                             <label for="email" class="form-label">
-                                <i class="fas fa-envelope"></i> Adresse email
+                                <i class="fas fa-envelope"></i> Adresse email (optionnel)
                             </label>
                             <input type="email" 
                                    class="form-control" 
                                    id="email" 
                                    name="email" 
-                                   value="{{ form.email.value|default:'' }}"
-                                   required>
-                            {% if form.email.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.email.errors.0 }}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <label for="password" class="form-label">
-                                <i class="fas fa-lock"></i> Mot de passe
-                            </label>
-                            <div class="input-group">
-                                <input type="password" 
-                                       class="form-control" 
-                                       id="password" 
-                                       name="password" 
-                                       required 
-                                       minlength="8">
-                                <button type="button" 
-                                        class="btn btn-secondary" 
-                                        id="toggle-password">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" 
-                                        class="btn btn-primary" 
-                                        id="generate-password">
-                                    <i class="fas fa-magic"></i>
-                                </button>
-                            </div>
-                            
-                            <!-- Indicateur de force du mot de passe -->
-                            <div class="password-strength">
-                                <div class="strength-bar">
-                                    <div class="strength-fill" style="width: 0%"></div>
-                                </div>
-                                <small class="strength-text"></small>
-                            </div>
-                            
-                            {% if form.password.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.password.errors.0 }}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <label for="password_confirm" class="form-label">
-                                <i class="fas fa-lock"></i> Confirmer le mot de passe
-                            </label>
-                            <div class="input-group">
-                                <input type="password" 
-                                       class="form-control" 
-                                       id="password_confirm" 
-                                       name="password_confirm" 
-                                       required>
-                                <button type="button" 
-                                        class="btn btn-secondary" 
-                                        id="toggle-password-confirm">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            {% if form.password_confirm.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.password_confirm.errors.0 }}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-group">
-                            <div class="form-check">
-                                <input type="checkbox" 
-                                       class="form-check-input" 
-                                       id="terms" 
-                                       name="terms" 
-                                       required>
-                                <label class="form-check-label" for="terms">
-                                    J'accepte les <a href="#" target="_blank">conditions d'utilisation</a> 
-                                    et la <a href="#" target="_blank">politique de confidentialité</a>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <div class="form-check">
-                                <input type="checkbox" 
-                                       class="form-check-input" 
-                                       id="newsletter" 
-                                       name="newsletter">
-                                <label class="form-check-label" for="newsletter">
-                                    Je souhaite recevoir les actualités et offres par email
-                                </label>
-                            </div>
+                                   value="{{ request.POST.email|default:'' }}"
+                                   placeholder="votre@email.com (ou laissez vide pour utiliser username@mspr2.com)">
+                            <small class="form-text text-muted">
+                                Si vide, nous utiliserons automatiquement : <span id="auto-email">{{ request.POST.username|default:'username' }}@mspr2.com</span>
+                            </small>
                         </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-user-plus"></i>
-                                Créer mon compte
+                                <i class="fas fa-arrow-right"></i>
+                                Continuer vers la génération du mot de passe
                             </button>
                         </div>
                     </form>
@@ -170,51 +109,93 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.workflow-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.workflow-steps::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gray-300);
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    padding: 0.5rem;
+    z-index: 2;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+    background: var(--primary-color);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--gray-600);
+    max-width: 80px;
+}
+
+.step.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .step-label {
+        font-size: 0.75rem;
+        max-width: 60px;
+    }
+    
+    .step-number {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle password visibility
-    const togglePassword = document.getElementById('toggle-password');
-    const togglePasswordConfirm = document.getElementById('toggle-password-confirm');
-    const passwordInput = document.getElementById('password');
-    const passwordConfirmInput = document.getElementById('password_confirm');
+    const usernameInput = document.getElementById('username');
+    const autoEmailSpan = document.getElementById('auto-email');
 
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-    }
-
-    if (togglePasswordConfirm && passwordConfirmInput) {
-        togglePasswordConfirm.addEventListener('click', function() {
-            const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordConfirmInput.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-    }
-
-    // Password confirmation validation
-    if (passwordInput && passwordConfirmInput) {
-        passwordConfirmInput.addEventListener('input', function() {
-            const password = passwordInput.value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword && password !== confirmPassword) {
-                this.classList.add('is-invalid');
-                this.parentNode.querySelector('.invalid-feedback')?.remove();
-                
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'invalid-feedback';
-                errorDiv.textContent = 'Les mots de passe ne correspondent pas';
-                this.parentNode.appendChild(errorDiv);
-            } else {
-                this.classList.remove('is-invalid');
-                this.parentNode.querySelector('.invalid-feedback')?.remove();
-            }
+    if (usernameInput && autoEmailSpan) {
+        usernameInput.addEventListener('input', function() {
+            const username = this.value || 'username';
+            autoEmailSpan.textContent = username + '@mspr2.com';
         });
     }
 });

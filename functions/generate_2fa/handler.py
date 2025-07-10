@@ -14,18 +14,8 @@ def handle(event, context):
     """
     Fonction serverless pour générer des codes 2FA (TOTP)
     """
-    # Gérer les requêtes OPTIONS pour CORS preflight
-    if hasattr(event, 'method') and event.method == 'OPTIONS':
-        return context.headers({
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Max-Age': '3600'
-        }).status(200).succeed('')
-    
     try:
         print(f"DEBUG: Event reçu: {event}")
-        print(f"DEBUG: Type de event: {type(event)}")
         
         # Parser les paramètres depuis le body de la requête
         if hasattr(event, 'body'):
@@ -48,25 +38,53 @@ def handle(event, context):
         
         # Paramètres de génération
         username = data.get('username')
+        email = data.get('email')
+        create_account = data.get('create_account', False)
         issuer = data.get('issuer', 'MSPR2-Cofrap')
         
         if not username:
-            return json.dumps({
-                'error': 'username est requis'
-            })
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    'error': 'username est requis'
+                })
+            }
         
         # Génération d'une clé secrète pour TOTP
         secret_key = pyotp.random_base32()
         
-        # Connexion à PostgreSQL
-        db_connection = get_db_connection()
+        # Déterminer l'email à utiliser
+        user_email = None
+        if create_account and email:
+            # Mode création de compte : utiliser l'email fourni
+            user_email = email
+        else:
+            # Mode normal : récupérer l'email depuis la base de données
+            try:
+                db_connection = get_db_connection()
+                user_email = get_user_email(db_connection, username)
+                if not user_email:
+                    return {
+                        "statusCode": 404,
+                        "body": json.dumps({
+                            'error': 'Utilisateur non trouvé dans la base de données'
+                        })
+                    }
+            except Exception as e:
+                return {
+                    "statusCode": 500,
+                    "body": json.dumps({
+                        'error': f'Erreur de connexion à la base de données: {str(e)}'
+                    })
+                }
         
-        # Récupération de l'email de l'utilisateur depuis la base
-        user_email = get_user_email(db_connection, username)
         if not user_email:
-            return json.dumps({
-                'error': 'Utilisateur non trouvé dans la base de données'
-            })
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    'error': 'Email requis pour la génération 2FA'
+                })
+            }
         
         # Création de l'objet TOTP
         totp = pyotp.TOTP(secret_key)
@@ -93,46 +111,49 @@ def handle(event, context):
         fernet = Fernet(encryption_key)
         encrypted_secret = fernet.encrypt(secret_key.encode()).decode()
         
-        # Stockage de la clé secrète chiffrée en base
-        store_2fa_secret(db_connection, username, encrypted_secret, user_email)
+        # Stockage des données seulement si l'utilisateur existe en base
+        if not create_account:
+            try:
+                # Stockage de la clé secrète chiffrée en base
+                store_2fa_secret(db_connection, username, encrypted_secret, user_email)
+                
+                # Génération d'un code de récupération
+                recovery_codes = generate_recovery_codes()
+                store_recovery_codes(db_connection, username, recovery_codes)
+            except Exception as e:
+                return {
+                    "statusCode": 500,
+                    "body": json.dumps({
+                        'error': f'Erreur lors du stockage en base: {str(e)}'
+                    })
+                }
+        else:
+            # Mode création de compte : générer les codes de récupération sans les stocker
+            recovery_codes = generate_recovery_codes()
         
-        # Génération d'un code de récupération
-        recovery_codes = generate_recovery_codes()
-        store_recovery_codes(db_connection, username, recovery_codes)
-        
-        response = json.dumps({
-            'success': True,
-            'secret_key': secret_key,
-            'qr_code': qr_code_base64,
-            'provisioning_uri': provisioning_uri,
-            'recovery_codes': recovery_codes,
-            'generated_at': datetime.now().isoformat(),
-            'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
-        })
-        
-        return context.headers({
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }).status(200).succeed(response)
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                'success': True,
+                'secret_key': secret_key,
+                'qr_code': qr_code_base64,
+                'provisioning_uri': provisioning_uri,
+                'recovery_codes': recovery_codes,
+                'generated_at': datetime.now().isoformat(),
+                'expires_at': (datetime.now() + timedelta(days=365)).isoformat()
+            })
+        }
         
     except json.JSONDecodeError:
-        error_response = json.dumps({'error': 'Format JSON invalide'})
-        return context.headers({
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }).status(400).succeed(error_response)
+        return {
+            "statusCode": 400,
+            "body": json.dumps({'error': 'Format JSON invalide'})
+        }
     except Exception as e:
-        error_response = json.dumps({'error': f'Erreur interne: {str(e)}'})
-        return context.headers({
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }).status(500).succeed(error_response)
+        return {
+            "statusCode": 500,
+            "body": json.dumps({'error': f'Erreur interne: {str(e)}'})
+        }
 
 def get_encryption_key():
     """Récupération de la clé de chiffrement depuis les variables d'environnement"""

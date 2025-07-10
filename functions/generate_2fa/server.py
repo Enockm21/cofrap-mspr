@@ -98,8 +98,8 @@ class FunctionHandler(BaseHTTPRequestHandler):
                 <h1>🔐 Génération 2FA (TOTP)</h1>
                 <form id="twoFactorForm">
                     <div class="form-group">
-                        <label>ID Utilisateur:</label>
-                        <input type="number" id="userId" required>
+                        <label>Nom d'utilisateur:</label>
+                        <input type="text" id="userId" required>
                     </div>
                     <div class="form-group">
                         <label>Email Utilisateur:</label>
@@ -119,8 +119,8 @@ class FunctionHandler(BaseHTTPRequestHandler):
                     e.preventDefault();
                     
                     const data = {
-                        user_id: parseInt(document.getElementById('userId').value),
-                        user_email: document.getElementById('userEmail').value,
+                        username: document.getElementById('userId').value,
+                        email: document.getElementById('userEmail').value,
                         issuer: document.getElementById('issuer').value
                     };
                     

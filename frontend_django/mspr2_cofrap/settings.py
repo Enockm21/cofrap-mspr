@@ -4,15 +4,16 @@ Django settings for cofrap_auth project.
 
 import os
 from pathlib import Path
+from .config import get_env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-in-production')
+SECRET_KEY = get_env('DJANGO_SECRET_KEY', 'django-insecure-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
+DEBUG = get_env('DJANGO_DEBUG', True, cast=bool)
 
 ALLOWED_HOSTS = ['*']  # À configurer selon l'environnement
 
@@ -110,10 +111,10 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuration OpenFaaS
-OPENFAAS_GATEWAY_URL = os.getenv('OPENFAAS_GATEWAY_URL', 'http://gateway:8080')
+OPENFAAS_GATEWAY_URL = get_env('URL_API_OPENFAAS', 'http://127.0.0.1:8080')
 
 # Configuration JWT
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+JWT_SECRET_KEY = get_env('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 
 # Logging
 LOGGING = {

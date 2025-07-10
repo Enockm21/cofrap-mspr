@@ -15,6 +15,35 @@
 </div>
 
 <div class="container">
+    <!-- Token CSRF pour les requêtes AJAX -->
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    
+    <!-- Indicateur de progression pour le workflow d'inscription -->
+    {% if is_registration %}
+    <div class="row justify-content-center mb-4">
+        <div class="col-12 col-lg-8">
+            <div class="workflow-steps">
+                <div class="step completed">
+                    <div class="step-number"><i class="fas fa-check"></i></div>
+                    <div class="step-label">Création utilisateur</div>
+                </div>
+                <div class="step completed">
+                    <div class="step-number"><i class="fas fa-check"></i></div>
+                    <div class="step-label">Génération mot de passe</div>
+                </div>
+                <div class="step active">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Configuration 2FA</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Authentification</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
             <!-- État actuel de la 2FA -->
@@ -22,7 +51,11 @@
                 <div class="card-header">
                     <h3 class="text-center">
                         <i class="fas fa-mobile-alt"></i>
-                        État de votre 2FA
+                        {% if is_registration %}
+                            Étape {{ step }}: Configuration 2FA
+                        {% else %}
+                            État de votre 2FA
+                        {% endif %}
                     </h3>
                 </div>
                 <div class="card-body">
@@ -30,7 +63,10 @@
                         <div class="col-md-8">
                             <h5>Authentification à deux facteurs</h5>
                             <p class="text-muted">
-                                {% if user_2fa_enabled %}
+                                {% if is_registration %}
+                                    🔧 Configuration de la 2FA pour le compte <strong>{{ user.username }}</strong><br>
+                                    Cette étape renforcera la sécurité de votre nouveau compte.
+                                {% elif user_2fa_enabled %}
                                     ✅ Votre compte est protégé par l'authentification à deux facteurs
                                 {% else %}
                                     ⚠️ Votre compte n'est pas encore protégé par l'authentification à deux facteurs
@@ -38,7 +74,11 @@
                             </p>
                         </div>
                         <div class="col-md-4 text-center">
-                            {% if user_2fa_enabled %}
+                            {% if is_registration %}
+                                <span class="badge bg-primary fs-6">
+                                    <i class="fas fa-cog fa-spin"></i> Configuration en cours
+                                </span>
+                            {% elif user_2fa_enabled %}
                                 <span class="badge bg-success fs-6">
                                     <i class="fas fa-check"></i> Activée
                                 </span>
@@ -151,6 +191,27 @@
                                         Vérifier et Activer la 2FA
                                     </button>
                                 </div>
+
+                                <!-- Section codes de récupération après vérification -->
+                                <div class="recovery-section mt-4" id="recovery-section" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <h6><i class="fas fa-key"></i> Codes de récupération générés</h6>
+                                        <p class="mb-2">Voici vos codes de récupération. Conservez-les précieusement !</p>
+                                        
+                                        <div class="recovery-codes-display" id="recovery-codes-display">
+                                            <!-- Les codes seront affichés ici -->
+                                        </div>
+                                        
+                                        <div class="text-center mt-3">
+                                            <button type="button" class="btn btn-primary me-2" id="print-codes-direct">
+                                                <i class="fas fa-print"></i> Imprimer
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" id="download-codes-direct">
+                                                <i class="fas fa-download"></i> Télécharger
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -229,7 +290,7 @@
 </div>
 
 <!-- Modal pour les codes de récupération -->
-<div class="modal fade" id="recoveryCodesModal" tabindex="-1">
+{% comment %} <div class="modal fade" id="recoveryCodesModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -264,11 +325,49 @@
             </div>
         </div>
     </div>
-</div>
+</div> {% endcomment %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Fonction pour récupérer le token CSRF
+function getCSRFToken() {
+    // Méthode 1: depuis l'input caché
+    const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfInput && csrfInput.value) {
+        return csrfInput.value;
+    }
+    
+    // Méthode 2: depuis les cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const cookieToken = getCookie('csrftoken');
+    if (cookieToken) {
+        return cookieToken;
+    }
+    
+    // Méthode 3: depuis le meta tag (si défini)
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        return metaTag.getAttribute('content');
+    }
+    
+    throw new Error('Token CSRF non trouvé par aucune méthode');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const generateQrBtn = document.getElementById('generate-qr-btn');
     const verifyCodeBtn = document.getElementById('verify-code-btn');
@@ -284,11 +383,13 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
 
             try {
-                const response = await fetch('/generate-2fa/', {
+                const csrfToken = getCSRFToken();
+
+                const response = await fetch('{% url "auth_app:generate_2fa" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': csrfToken
                     }
                 });
 
@@ -298,8 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Afficher le QR Code
                     document.getElementById('qr-code-placeholder').style.display = 'none';
                     document.getElementById('qr-code-display').style.display = 'block';
-                    document.getElementById('qr-code-image').src = data.qr_code_url;
-                    document.getElementById('secret-key').textContent = data.secret_key;
+                    document.getElementById('qr-code-image').src = 'data:image/png;base64,' + data.qr_code;
+                    document.getElementById('secret-key').textContent = data.provisioning_uri || 'Clé générée avec succès';
                     
                     // Passer à l'étape suivante
                     document.getElementById('step-1').style.display = 'none';
@@ -345,11 +446,13 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
 
             try {
-                const response = await fetch('/verify-2fa/', {
+                const csrfToken = getCSRFToken();
+
+                const response = await fetch('{% url "auth_app:verify_2fa" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
                         code: code
@@ -359,12 +462,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
-                        showNotification('2FA activée avec succès !', 'success');
+                        showNotification(data.message || '2FA activée avec succès !', 'success');
+                        
+                        // Générer et afficher les codes de récupération
+                        generateAndShowRecoveryCodes();
+                        
+                        // Rediriger vers la page appropriée après un délai plus long
                         setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                            if (data.next_url) {
+                                window.location.href = data.next_url;
+                            } else {
+                                window.location.reload();
+                            }
+                        }, 5000); // Plus de temps pour voir les codes
                     } else {
-                        showNotification('Code incorrect. Veuillez réessayer.', 'error');
+                        showNotification(data.error || 'Code incorrect. Veuillez réessayer.', 'error');
                     }
                 } else {
                     throw new Error('Erreur lors de la vérification');
@@ -394,17 +506,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (showRecoveryCodesBtn) {
         showRecoveryCodesBtn.addEventListener('click', async function() {
             try {
-                const response = await fetch('/get-recovery-codes/', {
+                const csrfToken = getCSRFToken();
+                const headers = {
+                    'X-CSRFToken': csrfToken
+                };
+
+                const response = await fetch('{% url "auth_app:get_recovery_codes" %}', {
                     method: 'GET',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
+                    headers: headers
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     displayRecoveryCodes(data.recovery_codes);
-                    new bootstrap.Modal(document.getElementById('recoveryCodesModal')).show();
+                    
+                    // Vérifier si la modale existe (elle peut être commentée)
+                    const modal = document.getElementById('recoveryCodesModal');
+                    if (modal) {
+                        new bootstrap.Modal(modal).show();
+                    } else {
+                        // Afficher les codes directement si la modale n'existe pas
+                        const codesText = data.recovery_codes.map((code, index) => `${index + 1}. ${code}`).join('\n');
+                        alert(`Codes de récupération :\n\n${codesText}\n\nVeuillez les noter dans un endroit sûr.`);
+                    }
                 } else {
                     throw new Error('Erreur lors de la récupération');
                 }
@@ -428,6 +552,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fonction pour afficher les codes de récupération
     function displayRecoveryCodes(codes) {
         const container = document.getElementById('recovery-codes-list');
+        if (!container) {
+            // Le conteneur n'existe pas (modale commentée)
+            console.log('Conteneur recovery-codes-list non trouvé');
+            return;
+        }
+        
         container.innerHTML = '';
         
         codes.forEach((code, index) => {
@@ -446,11 +576,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fonction pour désactiver la 2FA
     async function disable2FA() {
         try {
-            const response = await fetch('/disable-2fa/', {
+            const csrfToken = getCSRFToken();
+
+            const response = await fetch('{% url "auth_app:disable_2fa" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': csrfToken
                 }
             });
 
@@ -466,6 +598,377 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Erreur:', error);
             showNotification('Erreur lors de la désactivation', 'error');
         }
+    }
+
+    // Gestion des boutons Imprimer et Télécharger des codes de récupération
+    // Note: Ces boutons sont dans la modale qui peut être commentée
+    const printCodesBtn = document.getElementById('print-codes');
+    const downloadCodesBtn = document.getElementById('download-codes');
+    const printCodesDirectBtn = document.getElementById('print-codes-direct');
+    const downloadCodesDirectBtn = document.getElementById('download-codes-direct');
+
+    if (printCodesBtn) {
+        printCodesBtn.addEventListener('click', function() {
+            printRecoveryCodes();
+        });
+    }
+
+    if (downloadCodesBtn) {
+        downloadCodesBtn.addEventListener('click', function() {
+            downloadRecoveryCodes();
+        });
+    }
+
+    if (printCodesDirectBtn) {
+        printCodesDirectBtn.addEventListener('click', function() {
+            printRecoveryCodesFromDirect();
+        });
+    }
+
+    if (downloadCodesDirectBtn) {
+        downloadCodesDirectBtn.addEventListener('click', function() {
+            downloadRecoveryCodesFromDirect();
+        });
+    }
+
+    // Fonction pour imprimer les codes de récupération
+    function printRecoveryCodes() {
+        const codes = Array.from(document.querySelectorAll('.code-value')).map(el => el.textContent);
+        
+        if (codes.length === 0) {
+            showNotification('Aucun code de récupération à imprimer. Veuillez d\'abord afficher les codes.', 'warning');
+            return;
+        }
+
+        // Créer une nouvelle fenêtre pour l'impression
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date().toLocaleDateString('fr-FR');
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Codes de Récupération 2FA - Cofrap</title>
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        padding: 20px; 
+                        line-height: 1.6;
+                    }
+                    .header { 
+                        text-align: center; 
+                        margin-bottom: 30px; 
+                        border-bottom: 2px solid #333; 
+                        padding-bottom: 20px;
+                    }
+                    .codes-grid { 
+                        display: grid; 
+                        grid-template-columns: repeat(2, 1fr); 
+                        gap: 15px; 
+                        margin: 20px 0;
+                    }
+                    .code-item { 
+                        border: 1px solid #ddd; 
+                        padding: 15px; 
+                        border-radius: 5px; 
+                        font-family: 'Courier New', monospace; 
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .warning { 
+                        background-color: #fff3cd; 
+                        border: 1px solid #ffeaa7; 
+                        color: #856404; 
+                        padding: 15px; 
+                        border-radius: 5px; 
+                        margin: 20px 0;
+                    }
+                    .instructions {
+                        margin-top: 30px;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    @media print {
+                        body { font-size: 12px; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Codes de Récupération 2FA</h1>
+                    <h2>Cofrap Security</h2>
+                    <p>Générés le : ${currentDate}</p>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ IMPORTANT :</strong> Conservez ces codes dans un endroit sûr et sécurisé. 
+                    Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil d'authentification.
+                </div>
+                
+                <div class="codes-grid">
+                    ${codes.map((code, index) => `
+                        <div class="code-item">
+                            ${index + 1}. ${code}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="instructions">
+                    <h3>Instructions d'utilisation :</h3>
+                    <ul>
+                        <li>Chaque code ne peut être utilisé qu'une seule fois</li>
+                        <li>Utilisez ces codes uniquement si vous perdez l'accès à votre appareil 2FA</li>
+                        <li>Conservez ce document dans un coffre-fort ou un endroit sécurisé</li>
+                        <li>Si vous utilisez tous vos codes, générez-en de nouveaux depuis votre compte</li>
+                    </ul>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Imprimer après un court délai pour s'assurer que le contenu est chargé
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+        
+        showNotification('Impression des codes de récupération...', 'info');
+    }
+
+    // Fonction pour télécharger les codes de récupération
+    function downloadRecoveryCodes() {
+        const codes = Array.from(document.querySelectorAll('.code-value')).map(el => el.textContent);
+        
+        if (codes.length === 0) {
+            showNotification('Aucun code de récupération à télécharger. Veuillez d\'abord afficher les codes.', 'warning');
+            return;
+        }
+
+        const currentDate = new Date().toLocaleDateString('fr-FR');
+        const currentTime = new Date().toLocaleTimeString('fr-FR');
+        
+        // Créer le contenu du fichier
+        const content = `CODES DE RÉCUPÉRATION 2FA - COFRAP
+Générés le : ${currentDate} à ${currentTime}
+
+⚠️ IMPORTANT : Conservez ces codes dans un endroit sûr et sécurisé.
+Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil d'authentification.
+
+CODES DE RÉCUPÉRATION :
+${codes.map((code, index) => `${(index + 1).toString().padStart(2, '0')}. ${code}`).join('\n')}
+
+INSTRUCTIONS D'UTILISATION :
+- Chaque code ne peut être utilisé qu'une seule fois
+- Utilisez ces codes uniquement si vous perdez l'accès à votre appareil 2FA
+- Conservez ce fichier dans un endroit sécurisé
+- Si vous utilisez tous vos codes, générez-en de nouveaux depuis votre compte
+
+---
+Cofrap Security System
+`;
+
+        // Créer et télécharger le fichier
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `codes_recuperation_2fa_cofrap_${new Date().toISOString().split('T')[0]}.txt`;
+        
+        // Ajouter temporairement le lien au DOM et cliquer dessus
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Nettoyer l'URL créée
+        URL.revokeObjectURL(url);
+        
+        showNotification('Codes de récupération téléchargés avec succès !', 'success');
+    }
+
+    // Variable globale pour stocker les codes de récupération
+    let currentRecoveryCodes = [];
+
+    // Fonction pour générer et afficher les codes de récupération après activation 2FA
+    function generateAndShowRecoveryCodes() {
+        // Générer 10 codes de récupération aléatoirement
+        currentRecoveryCodes = [];
+        for (let i = 0; i < 10; i++) {
+            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+            currentRecoveryCodes.push(code);
+        }
+
+        // Afficher les codes dans la section dédiée
+        const displayContainer = document.getElementById('recovery-codes-display');
+        if (displayContainer) {
+            displayContainer.innerHTML = '';
+            currentRecoveryCodes.forEach((code, index) => {
+                const codeElement = document.createElement('div');
+                codeElement.className = 'recovery-code-simple';
+                codeElement.textContent = `${(index + 1).toString().padStart(2, '0')}. ${code}`;
+                displayContainer.appendChild(codeElement);
+            });
+        }
+
+        // Afficher la section de récupération
+        const recoverySection = document.getElementById('recovery-section');
+        if (recoverySection) {
+            recoverySection.style.display = 'block';
+        }
+    }
+
+    // Fonction pour imprimer les codes depuis l'affichage direct
+    function printRecoveryCodesFromDirect() {
+        if (currentRecoveryCodes.length === 0) {
+            showNotification('Aucun code de récupération disponible', 'warning');
+            return;
+        }
+
+        // Utiliser la même logique que printRecoveryCodes mais avec currentRecoveryCodes
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date().toLocaleDateString('fr-FR');
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Codes de Récupération 2FA - Cofrap</title>
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        padding: 20px; 
+                        line-height: 1.6;
+                    }
+                    .header { 
+                        text-align: center; 
+                        margin-bottom: 30px; 
+                        border-bottom: 2px solid #333; 
+                        padding-bottom: 20px;
+                    }
+                    .codes-grid { 
+                        display: grid; 
+                        grid-template-columns: repeat(2, 1fr); 
+                        gap: 15px; 
+                        margin: 20px 0;
+                    }
+                    .code-item { 
+                        border: 1px solid #ddd; 
+                        padding: 15px; 
+                        border-radius: 5px; 
+                        font-family: 'Courier New', monospace; 
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .warning { 
+                        background-color: #fff3cd; 
+                        border: 1px solid #ffeaa7; 
+                        color: #856404; 
+                        padding: 15px; 
+                        border-radius: 5px; 
+                        margin: 20px 0;
+                    }
+                    .instructions {
+                        margin-top: 30px;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    @media print {
+                        body { font-size: 12px; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Codes de Récupération 2FA</h1>
+                    <h2>Cofrap Security</h2>
+                    <p>Générés le : ${currentDate}</p>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ IMPORTANT :</strong> Conservez ces codes dans un endroit sûr et sécurisé. 
+                    Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil d'authentification.
+                </div>
+                
+                <div class="codes-grid">
+                    ${currentRecoveryCodes.map((code, index) => `
+                        <div class="code-item">
+                            ${index + 1}. ${code}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="instructions">
+                    <h3>Instructions d'utilisation :</h3>
+                    <ul>
+                        <li>Chaque code ne peut être utilisé qu'une seule fois</li>
+                        <li>Utilisez ces codes uniquement si vous perdez l'accès à votre appareil 2FA</li>
+                        <li>Conservez ce document dans un coffre-fort ou un endroit sécurisé</li>
+                        <li>Si vous utilisez tous vos codes, générez-en de nouveaux depuis votre compte</li>
+                    </ul>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+        
+        showNotification('Impression des codes de récupération...', 'info');
+    }
+
+    // Fonction pour télécharger les codes depuis l'affichage direct
+    function downloadRecoveryCodesFromDirect() {
+        if (currentRecoveryCodes.length === 0) {
+            showNotification('Aucun code de récupération disponible', 'warning');
+            return;
+        }
+
+        const currentDate = new Date().toLocaleDateString('fr-FR');
+        const currentTime = new Date().toLocaleTimeString('fr-FR');
+        
+        const content = `CODES DE RÉCUPÉRATION 2FA - COFRAP
+Générés le : ${currentDate} à ${currentTime}
+
+⚠️ IMPORTANT : Conservez ces codes dans un endroit sûr et sécurisé.
+Ils vous permettront de récupérer l'accès à votre compte si vous perdez votre appareil d'authentification.
+
+CODES DE RÉCUPÉRATION :
+${currentRecoveryCodes.map((code, index) => `${(index + 1).toString().padStart(2, '0')}. ${code}`).join('\n')}
+
+INSTRUCTIONS D'UTILISATION :
+- Chaque code ne peut être utilisé qu'une seule fois
+- Utilisez ces codes uniquement si vous perdez l'accès à votre appareil 2FA
+- Conservez ce fichier dans un endroit sécurisé
+- Si vous utilisez tous vos codes, générez-en de nouveaux depuis votre compte
+
+---
+Cofrap Security System
+`;
+
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `codes_recuperation_2fa_cofrap_${new Date().toISOString().split('T')[0]}.txt`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(url);
+        
+        showNotification('Codes de récupération téléchargés avec succès !', 'success');
     }
 
     // Fonction de notification
@@ -498,6 +1001,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block extra_css %}
 <style>
+.workflow-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.workflow-steps::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gray-300);
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    padding: 0.5rem;
+    z-index: 2;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+    background: var(--primary-color);
+    color: white;
+}
+
+.step.completed .step-number {
+    background: var(--success-color, #28a745);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--gray-600);
+    max-width: 80px;
+}
+
+.step.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.step.completed .step-label {
+    color: var(--success-color, #28a745);
+    font-weight: 600;
+}
+
 .setup-steps {
     max-width: 600px;
     margin: 0 auto;
@@ -607,7 +1180,41 @@ document.addEventListener('DOMContentLoaded', function() {
     letter-spacing: 1px;
 }
 
+.recovery-codes-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+    padding: 15px;
+    background: white;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+}
+
+.recovery-code-simple {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    padding: 8px 12px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
+    .workflow-steps .step-label {
+        font-size: 0.75rem;
+        max-width: 60px;
+    }
+    
+    .workflow-steps .step-number {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+    
     .qr-section {
         grid-template-columns: 1fr;
         gap: 1rem;
