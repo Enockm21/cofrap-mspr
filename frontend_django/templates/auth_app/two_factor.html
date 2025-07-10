@@ -228,7 +228,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <h6>Codes de récupération</h6>
                             <p class="text-muted">Vous avez <strong>{{ recovery_codes_count|default:10 }}</strong> codes de récupération restants.</p>
                             <button type="button" class="btn btn-outline-primary" id="show-recovery-codes">
@@ -236,13 +236,21 @@
                                 Afficher les codes
                             </button>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <h6>Désactiver la 2FA</h6>
                             <p class="text-muted">Attention : cela réduira la sécurité de votre compte.</p>
                             <button type="button" class="btn btn-outline-danger" id="disable-2fa-btn">
                                 <i class="fas fa-times"></i>
                                 Désactiver la 2FA
                             </button>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Déconnexion</h6>
+                            <p class="text-muted">Fermer votre session sécurisée.</p>
+                            <a href="{% url 'auth_app:logout_confirm' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Se déconnecter
+                            </a>
                         </div>
                     </div>
                 </div>

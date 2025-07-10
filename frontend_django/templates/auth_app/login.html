@@ -25,6 +25,7 @@
                     <form method="post" data-validate>
                         {% csrf_token %}
                         
+                        <!-- Champs d'identifiants -->
                         <div class="form-group">
                             <label for="username" class="form-label">
                                 <i class="fas fa-user"></i> Nom d'utilisateur
@@ -55,39 +56,25 @@
                             </div>
                         </div>
 
-                        {% if requires_2fa %}
-                            <div class="two-factor-section show">
-                                <div class="form-group">
-                                    <label for="two_factor_code" class="form-label">
-                                        <i class="fas fa-mobile-alt"></i> Code 2FA
-                                    </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="two_factor_code" 
-                                           name="two_factor_code" 
-                                           placeholder="Entrez votre code 2FA"
-                                           maxlength="6"
-                                           pattern="[0-9]{6}">
-                                    <small class="form-text text-muted">
-                                        Entrez le code à 6 chiffres de votre application d'authentification
-                                    </small>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="recovery_code" class="form-label">
-                                        <i class="fas fa-key"></i> Code de récupération (optionnel)
-                                    </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="recovery_code" 
-                                           name="recovery_code" 
-                                           placeholder="Ou utilisez un code de récupération">
-                                    <small class="form-text text-muted">
-                                        Utilisez un code de récupération si vous ne pouvez pas accéder à votre 2FA
-                                    </small>
-                                </div>
+                        <!-- Section 2FA (obligatoire) -->
+                        <div class="two-factor-section">
+                            <div class="form-group">
+                                <label for="two_factor_code" class="form-label">
+                                    <i class="fas fa-mobile-alt"></i> Code 2FA <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="two_factor_code" 
+                                       name="two_factor_code" 
+                                       placeholder="000000"
+                                       maxlength="6"
+                                       pattern="[0-9]{6}"
+                                       required>
+                                <small class="form-text text-muted">
+                                    Entrez le code à 6 chiffres de votre application d'authentification
+                                </small>
                             </div>
-                        {% endif %}
+                        </div>
 
                         <div class="form-group">
                             <div class="form-check">
@@ -104,7 +91,7 @@
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-sign-in-alt"></i>
-                                {% if requires_2fa %}Valider{% else %}Se connecter{% endif %}
+                                Se connecter
                             </button>
                         </div>
                     </form>
@@ -126,7 +113,38 @@
             </div>
         </div>
     </div>
-</div>
+{% comment %} 
+    <!-- Informations de démonstration -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Comptes de démonstration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-md-6">
+                            <h6>Utilisateur TEST18 (avec 2FA)</h6>
+                            <p class="mb-1"><strong>Utilisateur :</strong> TEST18</p>
+                            <p class="mb-1"><strong>Mot de passe :</strong> &amp;Ju@|L0b^7T)&gt;BLh</p>
+                            <p class="mb-1"><strong>Code 2FA :</strong> Généré par l'app</p>
+                            <p class="mb-0"><strong>Code récupération :</strong> FLT2REIX</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <h6>Utilisateur TEST50 (avec 2FA)</h6>
+                            <p class="mb-1"><strong>Utilisateur :</strong> TEST50</p>
+                            <p class="mb-1"><strong>Mot de passe :</strong> À générer</p>
+                            <p class="mb-1"><strong>Code 2FA :</strong> Généré par l'app</p>
+                            <p class="mb-0"><strong>Code récupération :</strong> 8PRADBRX</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> {% endcomment %}
 {% endblock %}
 
 {% block extra_js %}
@@ -145,17 +163,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Auto-focus on 2FA code input
-    const twoFactorInput = document.getElementById('two_factor_code');
-    if (twoFactorInput) {
-        twoFactorInput.focus();
+    // Auto-focus sur le champ username si vide
+    const usernameInput = document.getElementById('username');
+    if (usernameInput && !usernameInput.value) {
+        usernameInput.focus();
     }
 
-    // Auto-submit when 2FA code is complete
+    // Auto-submit quand le code 2FA est complet
+    const twoFactorInput = document.getElementById('two_factor_code');
     if (twoFactorInput) {
         twoFactorInput.addEventListener('input', function() {
             if (this.value.length === 6) {
-                this.form.submit();
+                // Vérifier que les autres champs requis sont remplis
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                if (username && password) {
+                    this.form.submit();
+                }
             }
         });
     }

@@ -4,7 +4,8 @@ from . import views
 app_name = 'auth_app'
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('', views.public_home, name='public_home'),
+    path('dashboard-home/', views.dashboard_home, name='dashboard_home'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -15,5 +16,6 @@ urlpatterns = [
     path('verify-2fa/', views.verify_2fa, name='verify_2fa'),
     path('get-recovery-codes/', views.get_recovery_codes, name='get_recovery_codes'),
     path('disable-2fa/', views.disable_2fa, name='disable_2fa'),
+    path('logout-confirm/', views.logout_confirm, name='logout_confirm'),
     path('logout/', views.logout_view, name='logout'),
 ] 

@@ -90,9 +90,12 @@
                     </div>
                     
                     <div class="mt-4">
-                        <button class="btn btn-primary btn-sm w-100">
+                        <button class="btn btn-primary btn-sm w-100 mb-2">
                             <i class="fas fa-edit"></i> Modifier le profil
                         </button>
+                        <a href="{% url 'auth_app:logout_confirm' %}" class="btn btn-outline-danger btn-sm w-100">
+                            <i class="fas fa-sign-out-alt"></i> Se déconnecter
+                        </a>
                     </div>
                 </div>
             </div>

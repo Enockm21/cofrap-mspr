@@ -25,21 +25,24 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="{% url 'auth_app:home' %}" class="navbar-brand">
+            <a href="{% url 'auth_app:public_home' %}" class="navbar-brand">
                 <i class="fas fa-shield-alt"></i>
                 Cofrap
             </a>
             
             <ul class="navbar-nav">
-                <li><a href="{% url 'auth_app:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                <li><a href="{% url 'auth_app:public_home' %}" class="nav-link {% if request.resolver_match.url_name == 'public_home' %}active{% endif %}">
                     <i class="fas fa-home"></i> Accueil
                 </a></li>
                 
                 {% if user.is_authenticated %}
-                    <li><a href="{% url 'auth_app:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                        <i class="fas fa-tachometer-alt"></i> Tableau de bord
+                    <li><a href="{% url 'auth_app:dashboard_home' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_home' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Mon espace
                     </a></li>
-                    <li><a href="{% url 'auth_app:logout' %}" class="nav-link">
+                    <li><a href="{% url 'auth_app:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-chart-bar"></i> Tableau de bord
+                    </a></li>
+                    <li><a href="{% url 'auth_app:logout_confirm' %}" class="nav-link">
                         <i class="fas fa-sign-out-alt"></i> Déconnexion
                     </a></li>
                 {% else %}

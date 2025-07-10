@@ -34,59 +34,28 @@ def make_api_request(endpoint, data, registration_data=None):
     except requests.RequestException as e:
         raise Exception(f'Erreur de connexion au backend: {str(e)}')
 
-# Données factices pour la démo
-FAKE_USERS = {
-    'admin': {
-        'id': 1,
-        'username': 'admin',
-        'email': 'admin@mspr2.com',
-        'password': 'admin123',
-        'two_factor_enabled': True,
-        'created_at': '2024-01-15',
-        'last_login': '2024-01-20 14:30:00'
-    },
-    'user1': {
-        'id': 2,
-        'username': 'user1',
-        'email': 'user1@example.com',
-        'password': 'password123',
-        'two_factor_enabled': False,
-        'created_at': '2024-01-16',
-        'last_login': '2024-01-20 12:15:00'
-    }
-}
+def public_home(request):
+    """Page d'accueil publique - accessible à tous"""
+    return render(request, 'auth_app/public_home.html')
 
-FAKE_ACTIVITIES = [
-    {
-        'type': 'login',
-        'description': 'Connexion réussie depuis Chrome sur Windows',
-        'location': 'Paris, France',
-        'timestamp': '2024-01-20 14:30:00',
-        'icon': 'fas fa-sign-in-alt',
-        'status': 'success'
-    },
-    {
-        'type': 'password_generated',
-        'description': 'Nouveau mot de passe généré',
-        'timestamp': '2024-01-19 10:15:00',
-        'icon': 'fas fa-key',
-        'status': 'info'
-    },
-    {
-        'type': '2fa_configured',
-        'description': 'Authentification à deux facteurs activée',
-        'timestamp': '2024-01-18 16:45:00',
-        'icon': 'fas fa-mobile-alt',
-        'status': 'warning'
+def dashboard_home(request):
+    """Page d'accueil du tableau de bord - accessible seulement aux utilisateurs connectés"""
+    # Vérifier si l'utilisateur est connecté
+    if not request.session.get('is_authenticated'):
+        messages.warning(request, 'Vous devez être connecté pour accéder à cette page.')
+        return redirect('auth_app:login')
+    
+    user_data = request.session.get('user_data', {})
+    
+    context = {
+        'user': user_data,
+        'welcome_message': f'Bienvenue {user_data.get("username", "Utilisateur")} !'
     }
-]
-
-def home(request):
-    """Page d'accueil"""
-    return render(request, 'auth_app/home.html')
+    
+    return render(request, 'auth_app/home.html', context)
 
 def login_view(request):
-    """Étape 4: Authentification via fonction OpenFaaS"""
+    """Authentification via fonction OpenFaaS avec code 2FA obligatoire"""
     # Nettoyer les données d'inscription après redirection depuis 2FA
     if request.session.get('registration_data', {}).get('mfa_generated'):
         messages.success(request, 'Inscription terminée ! Connectez-vous avec vos identifiants.')
@@ -96,22 +65,25 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         two_factor_code = request.POST.get('two_factor_code')
-        recovery_code = request.POST.get('recovery_code')
         
         if not username or not password:
             messages.error(request, 'Nom d\'utilisateur et mot de passe requis')
             return render(request, 'auth_app/login.html')
         
-        # Appel à la fonction OpenFaaS authenticate-user
+        if not two_factor_code:
+            messages.error(request, 'Code 2FA requis')
+            return render(request, 'auth_app/login.html', {
+                'username': username,
+                'requires_2fa': True
+            })
+        
+        # Appel à la fonction OpenFaaS authenticate-user avec code 2FA obligatoire
         try:
             auth_data = {
                 'username': username,
-                'password': password
+                'password': password,
+                'two_factor_code': two_factor_code
             }
-            if two_factor_code:
-                auth_data['two_factor_code'] = two_factor_code
-            if recovery_code:
-                auth_data['recovery_code'] = recovery_code
             
             # Si c'est un nouveau compte, ajouter le paramètre create_account
             registration_data = request.session.get('registration_data')
@@ -125,17 +97,18 @@ def login_view(request):
                 headers={'Content-Type': 'application/json'},
                 timeout=30
             )
-            
+            # print(response.json(),"response")
             if response.status_code == 200:
                 result = response.json()
                 
-                if result.get('success'):
+                # Vérifier si la réponse contient un token (connexion réussie)
+                if result.get('token') and result.get('user'):
                     # Connexion réussie
                     user_data = {
-                        'id': result.get('user_id'),
+                        'id': result.get('user', {}).get('id') or result.get('user_id'),
                         'username': username,
-                        'email': result.get('email', f'{username}@mspr2.com'),
-                        'two_factor_enabled': result.get('two_factor_enabled', False),
+                        'email': result.get('user', {}).get('email') or result.get('email', f'{username}@mspr2.com'),
+                        'two_factor_enabled': result.get('user', {}).get('two_factor_enabled', True),
                         'token': result.get('token'),
                         'last_login': result.get('last_login')
                     }
@@ -148,19 +121,24 @@ def login_view(request):
                     if 'registration_data' in request.session:
                         del request.session['registration_data']
                     
+                    # Nettoyer les données de connexion temporaires
+                    if 'login_step' in request.session:
+                        del request.session['login_step']
+                    if 'login_username' in request.session:
+                        del request.session['login_username']
+                    if 'login_password' in request.session:
+                        del request.session['login_password']
+                    
                     messages.success(request, f'Connexion réussie ! Bienvenue {username}')
-                    return redirect('auth_app:home')  # Redirection vers HOME
+                    return redirect('auth_app:dashboard_home')  # Redirection vers la page d'accueil du tableau de bord
                 
-                elif result.get('requires_2fa'):
-                    messages.warning(request, 'Code 2FA requis')
+                else:
+                    error_msg = result.get('error', 'Identifiants ou code 2FA incorrect')
+                    messages.error(request, error_msg)
                     return render(request, 'auth_app/login.html', {
                         'username': username,
                         'requires_2fa': True
                     })
-                
-                else:
-                    error_msg = result.get('error', 'Identifiants invalides')
-                    messages.error(request, error_msg)
             else:
                 messages.error(request, f'Erreur serveur: {response.status_code}')
                 
@@ -350,11 +328,11 @@ def generate_2fa(request):
         try:
             # La génération 2FA n'a pas besoin de données du frontend
             # Elle utilise les données de session
-            print("Génération 2FA - Pas de données requises du frontend")
+            # print("Génération 2FA - Pas de données requises du frontend")
             
             # Récupérer le nom d'utilisateur
             registration_data = request.session.get('registration_data')
-            print(registration_data,"registration_data")
+            # print(registration_data,"registration_data")
             user_data = request.session.get('user_data', {})
             username = registration_data.get('username') if registration_data else user_data.get('username')
             
@@ -369,18 +347,35 @@ def generate_2fa(request):
                 # Préparer les données pour l'API
                 api_data = {'username': username}
                 
-                # Si on est dans le workflow d'inscription, ajouter le paramètre create_account
+                # Si on est dans le workflow d'inscription, créer l'utilisateur si besoin
                 if registration_data and registration_data.get('account_created'):
-                    api_data['create_account'] = True
-                    api_data['email'] = registration_data.get('email')
-                print(settings.OPENFAAS_GATEWAY_URL,"settings.OPENFAAS_GATEWAY_URL")
+                    # Créer l'utilisateur (idempotent)
+                    try:
+                        create_user_response = requests.post(
+                            f"{settings.OPENFAAS_GATEWAY_URL}/function/authenticate-user",
+                            json={
+                                'username': username,
+                                'email': registration_data.get('email'),
+                                'create_account': True
+                            },
+                            headers={'Content-Type': 'application/json'},
+                            timeout=30
+                        )
+                        # On ne bloque pas si l'utilisateur existe déjà
+                    except requests.RequestException as e:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Erreur de connexion lors de la création de l\'utilisateur: {str(e)}'
+                        }, status=500)
+                    # NE PAS mettre create_account dans l'appel à generate-2fa
+                
                 response = requests.post(
                     f"{settings.OPENFAAS_GATEWAY_URL}/function/generate-2fa",
                     json=api_data,
                     headers={'Content-Type': 'application/json'},
                     timeout=30
                 )
-                print(response.json())
+                # print(response.json())
                 
                 if response.status_code == 200:
                     result = response.json()
@@ -409,7 +404,7 @@ def generate_2fa(request):
                 else:
                     return JsonResponse({
                         'success': False,
-                        'error': f'Erreur serveur: {response.status_code}'
+                        'error': f': {response.status_code}'
                     }, status=500)
                     
             except requests.RequestException as e:
@@ -484,37 +479,88 @@ def two_factor_view(request):
 
 @csrf_exempt
 def verify_2fa(request):
-    """Vérification du code 2FA"""
+    """Vérification du code 2FA via OpenFaaS"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             code = data.get('code')
             
-            # Simulation de vérification (code factice: 123456)
-            if code == '123456':
-                # Activer la 2FA pour l'utilisateur
-                registration_data = request.session.get('registration_data')
-                user_data = request.session.get('user_data', {})
-                
-                if registration_data:
-                    # En cours d'inscription : activer la 2FA dans registration_data
-                    request.session['registration_data']['two_factor_enabled'] = True
-                    request.session.modified = True
-                elif user_data:
-                    # Utilisateur connecté : activer la 2FA dans user_data
-                    user_data['two_factor_enabled'] = True
-                    request.session['user_data'] = user_data
-                    request.session.modified = True
-                
+            if not code:
+                return JsonResponse({'success': False, 'error': 'Code requis'}, status=400)
+            
+            # Récupérer le username depuis la session
+            registration_data = request.session.get('registration_data')
+            user_data = request.session.get('user_data', {})
+            username = registration_data.get('username') if registration_data else user_data.get('username')
+            
+            if not username:
                 return JsonResponse({
-                    'success': True,
-                    'message': '2FA activée avec succès !',
-                    'next_url': '/login/' if registration_data else None
-                })
-            else:
-                return JsonResponse({'success': False, 'error': 'Code incorrect'})
+                    'success': False,
+                    'error': 'Nom d\'utilisateur non trouvé'
+                }, status=400)
+            
+            # Appel à la fonction OpenFaaS generate-2fa avec verify_2fa=True
+            try:
+                payload = {
+                    'username': username,
+                    'code': code,
+                    'verify_2fa': True
+                }
+                
+                response = requests.post(
+                    f"{settings.OPENFAAS_GATEWAY_URL}/function/generate-2fa",
+                    json=payload,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=30
+                )
+                print(response.json(),"response")
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get('success'):
+                        # Activer la 2FA pour l'utilisateur
+                        if registration_data:
+                            # En cours d'inscription : activer la 2FA dans registration_data
+                            request.session['registration_data']['two_factor_enabled'] = True
+                            request.session.modified = True
+                        elif user_data:
+                            # Utilisateur connecté : activer la 2FA dans user_data
+                            user_data['two_factor_enabled'] = True
+                            request.session['user_data'] = user_data
+                            request.session.modified = True
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'message': '2FA activée avec succès !',
+                            'next_url': '/login/' if registration_data else None
+                        })
+                    else:
+                        return JsonResponse({
+                            'success': False,
+                            'error': result.get('error', 'Code incorrect')
+                        })
+                        
+                else:
+                    # print(result,"result")
+                    print(response,"response2")
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Erreur serveur: {response.status_code}'
+                    }, status=500)
+                    
+            except requests.RequestException as e:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Erreur de connexion au backend: {str(e)}'
+                }, status=500)
+                
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Données JSON invalides'}, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Erreur inattendue: {str(e)}'
+            }, status=500)
     
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
@@ -542,11 +588,35 @@ def disable_2fa(request):
     
     return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
+def logout_confirm(request):
+    """Page de confirmation de déconnexion"""
+    # Vérifier si l'utilisateur est connecté
+    if not request.session.get('is_authenticated'):
+        messages.warning(request, 'Vous n\'êtes pas connecté.')
+        return redirect('auth_app:login')
+    
+    user_data = request.session.get('user_data', {})
+    
+    context = {
+        'user': user_data
+    }
+    
+    return render(request, 'auth_app/logout_confirm.html', context)
+
 def logout_view(request):
     """Déconnexion"""
+    # Récupérer le nom d'utilisateur avant de supprimer la session
+    username = request.session.get('user_data', {}).get('username', 'Utilisateur')
+    
+    # Nettoyer complètement la session
     request.session.flush()
-    messages.success(request, 'Déconnexion réussie !')
-    return redirect('auth_app:home')
+    
+    # Supprimer le cookie de session si il existe
+    if hasattr(request, 'session'):
+        request.session.delete()
+    
+    messages.success(request, f'Déconnexion réussie ! Au revoir {username}')
+    return redirect('auth_app:public_home')
 
 # Décorateur personnalisé pour vérifier l'authentification
 def login_required(view_func):
